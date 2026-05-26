@@ -12,31 +12,6 @@ languages:
     weight: 1
 
 params:
-  footer: "Copyright © 2023 by oxivanisher" 
-  author: "oxivanisher" 
-
-menu:
-  navbar:
-  - identifier: news
-    name: News
-    url: /news/
-    weight: 10
-  - identifier: discord
-    name: Discord
-    url: /discord
-    weight: 20
-  - identifier: infos
-    name: Infos
-    url: /infos
-    weight: 30
-  - identifier: kleine-helfer
-    name: "Kleine Helfer"
-    url: /kleine-helfer
-    weight: 40
-  - identifier: about
-    name: About
-    title: About
-    url: /about/
-    weight: 100
-
+  footer: "Copyright © fpvhub.ch"
+  author: "fpvhub.ch"
 

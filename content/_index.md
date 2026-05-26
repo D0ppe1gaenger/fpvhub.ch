@@ -1,10 +1,22 @@
 ---
-author:  "the-technat"
-type: "blank"
+author: “oxivanisher”
+type: “blank”
+description: “Discord FPV Hub | Der Schweizer FPV Chat”
+keywords:
+- chat
+- discord
 ---
 
-### Herzlich Willkommen auf dem Schweizer FPV Hub
+Um die Community der FPV-Piloten in der Schweiz näher zusammenzubringen, haben wir einen Discord Server names “FPV Hub” eingerichtet. Die Idee dahinter ist es, den sehr verstreuten WhatsApp-Gruppen etwas entgegenzuwirken. Damit auch neue Piloten einfacheren Zugang zur Community finden.
 
-FPV steht für "First Person View" (engl. für "Sicht aus der ersten Person") und ist eine ganz neue Erfahrung, ferngesteuerte Modelle (RC) zu erleben. RC steht für “Remote Control” und bedeutet ferngesteuert. Dieser Ausdruck steht heute als Überbegriff für alles, was ferngesteuert fährt, fliegt und schwimmt. Dieser Hub soll eine zentrale und unabhängige Plattform sein, auf der sich Interessierte zu allen Themen im Bezug zu FPV und RC austauschen und informieren können.
+Unter dem folgenden Link bist du herzlich Willkommen:
 
-Quadrocopter und Multicopter (aka Drohnen) sind ein relativ neuer Bestandteil der RC-Welt, die einen immer grösseren Zuwachs verzeichnet. Oft werden sie jedoch in denselben Topf wie die oft gesehenen und unbeliebten Video-Drohnen geworfen, was wir sehr bedauern. Unser Hobby liegt jedoch viel näher am klassischen Modellbau, da wir unsere Fluggeräte meistens selbst bauen und der Flug ohne automatische Stabilisierung erfolgt. Am bekanntesten sind "unsere" Drohnen durch Drone-Racing, z.B. bei der [Swiss Drone League](https://swissdroneleague.ch/). Sie werden aber auch entspannter im sogenannten "Akro-Modus" geflogen, was sich in etwa als 3D-Kunstflug erklären lässt.
+[discordapp.com/invite/VGYscGR](https://discordapp.com/invite/VGYscGR)
+
+Wenn du, ähnlich wie bei WhatsApp, auch mit deinem Mobile dabei sein willst, kannst du hier die entsprechende App installieren:
+
+ 
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.discord&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1)
+
+ 
+Anmerkung: Es ist einfacher, dich erst im Web an Discord anzumelden und anschliessend die App auf deinem Mobile zu installieren. Falls du die Anmeldung über das Mobile machen willst, musst du deinen Account mit Angabe deiner Mobile-Nummer verifizieren. Wenn du deinen Account über den normalen Desktop Client oder die Website discordapp.com machst, ist dies nicht nötig.
