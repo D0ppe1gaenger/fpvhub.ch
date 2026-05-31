@@ -1,5 +1,6 @@
 {{ define "styles" }}
 <style>
+  .feat-icon i { font-size: 1.2rem; color: var(--g); }
   .hero { padding: 5rem 0 3rem; display: grid; grid-template-columns: 1fr 200px; gap: 2rem; align-items: center; }
   .pill { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--g); background: rgba(245,197,24,0.08); border: 1px solid var(--bdr); padding: 0.35rem 0.9rem; border-radius: 2rem; margin-bottom: 1.5rem; }
   .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--g); animation: pulse 2s ease-in-out infinite; }
@@ -37,7 +38,7 @@
   .app-text strong { font-size: 0.92rem; font-weight: 600; }
   .tip { margin-top: 2.5rem; padding: 1.2rem 1.5rem; background: rgba(245,197,24,0.05); border-left: 2px solid var(--g); border-radius: 0 0.5rem 0.5rem 0; font-size: 0.84rem; line-height: 1.75; color: var(--fm); font-weight: 300; }
   .tip strong { color: var(--g); font-weight: 600; }
-  @media (max-width: 640px) { .hero { grid-template-columns: 1fr; padding: 3rem 0 2rem; } .hero-visual { display: none; } }
+  @media (max-width: 640px) { .hero { grid-template-columns: 1fr; padding: 3rem 0 2rem; } .hero-visual { display: none; } .features { grid-template-columns: 1fr; } .apps { grid-template-columns: 1fr; } }
 </style>
 {{ end }}
 
@@ -64,13 +65,14 @@
   <div class="eyebrow">Was dich erwartet</div>
   <h2>Alles was du als<br>FPV-Pilot brauchst</h2>
   <p class="sec-body">Von Technik-Fragen bis zu Fluglokationen. Bei uns findest du Gleichgesinnte, die genauso verrückt nach FPV sind wie du.</p>
-  <div class="features">
-    <div class="feat"><div class="feat-icon">🎯</div><div class="feat-title">Tipps & Tricks</div><div class="feat-body">Von Setup bis Tune, lerne von erfahrenen Piloten und teile dein Wissen.</div></div>
-    <div class="feat"><div class="feat-icon">📍</div><div class="feat-title">Fluglokationen</div><div class="feat-body">Entdecke legale und schöne Spots in deiner Region, kuratiert von der Community.</div></div>
-    <div class="feat"><div class="feat-icon">🛠️</div><div class="feat-title">Tech Support</div><div class="feat-body">Probleme mit deiner Drohne? Die Community hilft dir schnell weiter.</div></div>
-    <div class="feat"><div class="feat-icon">🏁</div><div class="feat-title">Racing & Freestyle</div><div class="feat-body">Ob Rennen oder Freestyle-Sessions, finde Gleichgesinnte für gemeinsame Flüge.</div></div>
-    <div class="feat"><div class="feat-icon">🎬</div><div class="feat-title">Footage teilen</div><div class="feat-body">Zeig deine besten Clips und lass dich von anderen Piloten inspirieren.</div></div>
-    <div class="feat"><div class="feat-icon">📦</div><div class="feat-title">Marktplatz</div><div class="feat-body">Kaufe und verkaufe Komponenten direkt in der Community, fair und einfach.</div></div>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <div class="features">
+    <div class="feat"><div class="feat-icon"><i class="ti ti-bulb"></i></div><div class="feat-title">Tipps & Tricks</div><div class="feat-body">Von Setup bis Tune, lerne von erfahrenen Piloten und teile dein Wissen.</div></div>
+    <div class="feat"><div class="feat-icon"><i class="ti ti-map-pin"></i></div><div class="feat-title">Fluglokationen</div><div class="feat-body">Entdecke legale und schöne Spots in deiner Region — kuratiert von der Community.</div></div>
+    <div class="feat"><div class="feat-icon"><i class="ti ti-tool"></i></div><div class="feat-title">Tech Support</div><div class="feat-body">Probleme mit deiner Drohne? Die Community hilft dir schnell weiter.</div></div>
+    <div class="feat"><div class="feat-icon"><i class="ti ti-flag"></i></div><div class="feat-title">Racing & Freestyle</div><div class="feat-body">Ob Rennen oder Freestyle-Sessions, finde Gleichgesinnte für gemeinsame Flüge.</div></div>
+    <div class="feat"><div class="feat-icon"><i class="ti ti-video"></i></div><div class="feat-title">Footage teilen</div><div class="feat-body">Zeig deine besten Clips und lass dich von anderen Piloten inspirieren.</div></div>
+    <div class="feat"><div class="feat-icon"><i class="ti ti-shopping-bag"></i></div><div class="feat-title">Marktplatz</div><div class="feat-body">Kaufe und verkaufe Komponenten direkt in der Community — fair und einfach.</div></div>
   </div>
 </div>
 
@@ -91,44 +93,4 @@
   <div class="tip"><strong>Tipp:</strong> Melde dich zuerst am Desktop oder im Browser an, so sparst du dir die Handynummer-Verifizierung. Einfach auf <em>discordapp.com</em> registrieren und danach die App installieren.</div>
 </div>
 
-<canvas id="cursor-canvas" style="position:fixed;inset:0;z-index:99999;pointer-events:none;"></canvas>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const cc = document.getElementById('cursor-canvas');
-  const cx = cc.getContext('2d');
-  let cw, ch, particles = [], mouse = {x:0, y:0};
-  function resizeC() { cw = cc.width = window.innerWidth; ch = cc.height = window.innerHeight; }
-  resizeC();
-  window.addEventListener('resize', resizeC);
-  window.addEventListener('mousemove', e => {
-    mouse.x = e.clientX; mouse.y = e.clientY;
-    for(let i = 0; i < 3; i++) {
-      particles.push({
-        x: mouse.x, y: mouse.y,
-        vx: (Math.random()-0.5)*2,
-        vy: (Math.random()-0.5)*2,
-        life: 1,
-        r: Math.random()*3+1,
-        gold: Math.random() > 0.5
-      });
-    }
-  });
-  function animC() {
-    cx.clearRect(0,0,cw,ch);
-    particles = particles.filter(p => p.life > 0);
-    for(const p of particles) {
-      p.x += p.vx; p.y += p.vy;
-      p.life -= 0.03;
-      cx.beginPath();
-      cx.arc(p.x, p.y, Math.max(0.1, p.r * p.life), 0, Math.PI*2);
-      cx.fillStyle = p.gold
-        ? `rgba(245,197,24,${p.life})`
-        : `rgba(240,140,0,${p.life})`;
-      cx.fill();
-    }
-    requestAnimationFrame(animC);
-  }
-  animC();
-});
-</script>
 {{ end }}
