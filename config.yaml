@@ -1,17 +1,4 @@
----
 baseURL: "https://fpvhub.ch"
-title: "fpvhub.ch"
-theme: "hugo-theme-monochrome"
+title: "FPV Hub"
 defaultContentLanguage: de
-languages:
-  de:
-    disabled: false
-    languageCode: "de"
-    languageName: "Deutsch"
-    contentDir: "content"
-    weight: 1
-
-params:
-  footer: "Copyright © fpvhub.ch"
-  author: "fpvhub.ch"
-
+disableKinds: ["taxonomy", "term", "RSS", "sitemap"]
