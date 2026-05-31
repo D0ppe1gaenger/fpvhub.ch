@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
       p.x += p.vx; p.y += p.vy;
       p.life -= 0.03;
       cx.beginPath();
-      cx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
+      cx.arc(p.x, p.y, Math.max(0.1, p.r * p.life), 0, Math.PI*2);
       cx.fillStyle = p.gold
         ? `rgba(245,197,24,${p.life})`
         : `rgba(240,140,0,${p.life})`;
