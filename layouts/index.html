@@ -1,6 +1,5 @@
 {{ define "styles" }}
 <style>
-  .feat-icon i { font-size: 1.2rem; color: var(--g); }
   .hero { padding: 5rem 0 3rem; display: grid; grid-template-columns: 1fr 200px; gap: 2rem; align-items: center; }
   .pill { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--g); background: rgba(245,197,24,0.08); border: 1px solid var(--bdr); padding: 0.35rem 0.9rem; border-radius: 2rem; margin-bottom: 1.5rem; }
   .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--g); animation: pulse 2s ease-in-out infinite; }
@@ -25,7 +24,8 @@
   .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--bdr); border: 1px solid var(--bdr); border-radius: 0.75rem; overflow: hidden; margin-top: 2rem; }
   .feat { background: var(--n2); padding: 1.5rem; transition: background 0.15s; }
   .feat:hover { background: var(--n1); }
-  .feat-icon { width: 36px; height: 36px; border-radius: 0.5rem; background: rgba(245,197,24,0.1); border: 1px solid var(--bdr); display: flex; align-items: center; justify-content: center; margin-bottom: 0.9rem; font-size: 1rem; }
+  .feat-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.9rem; }
+  .feat-icon i { font-size: 1.8rem; color: var(--g); }
   .feat-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--fg); }
   .feat-body { font-size: 0.82rem; line-height: 1.6; color: var(--fm); font-weight: 300; }
   .apps { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
