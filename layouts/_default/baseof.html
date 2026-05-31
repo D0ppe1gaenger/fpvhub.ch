@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ .Site.Title }}{{ if not .IsHome }} – {{ .Title }}{{ end }}</title>
+<meta name="description" content="Die zentrale FPV-Community der Schweiz.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --g: #f5c518; --o: #f08c00;
+    --n3: #080b18; --n2: #0f1326; --n1: #161b35; --n0: #1e2440;
+    --fg: #edeae0; --fm: rgba(237,234,224,0.6); --fd: rgba(237,234,224,0.28);
+    --bdr: rgba(245,197,24,0.13); --bdrh: rgba(245,197,24,0.3);
+  }
+  html, body { background: var(--n3); color: var(--fg); font-family: 'Space Grotesk', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 1.6rem 0; border-bottom: 1px solid var(--bdr); }
+  .navlogo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+  .navlogo img { width: 40px; height: 40px; border-radius: 8px; background: #000; padding: 3px; border: 1px solid var(--bdrh); object-fit: contain; }
+  .navlogo-name { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; letter-spacing: 0.03em; color: var(--fg); line-height: 1; }
+  .navlogo-name b { color: var(--g); }
+  .cta-sm { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n3); background: var(--g); padding: 0.45rem 1.1rem; border-radius: 2rem; text-decoration: none; transition: background 0.15s; }
+  .cta-sm:hover { background: var(--o); }
+  footer { padding: 2rem 0 2.5rem; margin-top: 1rem; border-top: 1px solid var(--bdr); display: flex; justify-content: space-between; align-items: center; }
+  .footer-l { display: flex; align-items: center; gap: 0.8rem; }
+  .footer-logo { width: 26px; height: 26px; object-fit: contain; background: #000; border-radius: 4px; padding: 2px; opacity: 0.7; }
+  footer small { font-size: 0.73rem; color: var(--fd); }
+  .footer-r { display: flex; align-items: center; gap: 1.2rem; }
+  .footer-r a { font-size: 0.73rem; color: var(--fd); text-decoration: none; transition: color 0.15s; }
+  .footer-r a:hover { color: var(--g); }
+  @media (max-width: 640px) { .navlinks { display: none; } .features { grid-template-columns: 1fr; } .apps { grid-template-columns: 1fr; } }
+</style>
+{{ block "styles" . }}{{ end }}
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="wrap">
+  <nav>
+    <a href="/" class="navlogo">
+      <img src="/logo.png" alt="FPV Hub Logo">
+      <span class="navlogo-name">FPV<b>HUB</b></span>
+    </a>
+    <a href="https://discord.gg/pFyZEdx4vQ" class="cta-sm" target="_blank" rel="noopener">Discord beitreten</a>
+  </nav>
+  {{ block "main" . }}{{ end }}
+  <footer>
+    <div class="footer-l">
+      <img src="/logo.png" alt="" class="footer-logo">
+      <small>© 2025 fpvhub.ch</small>
+    </div>
+    <div class="footer-r">
+      <a href="#">Impressum</a>
+      <a href="#">Datenschutz</a>
+      <a href="https://discord.gg/pFyZEdx4vQ" target="_blank" rel="noopener">Discord</a>
+    </div>
+  </footer>
+</div>
+<script>
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, pts;
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function init() { pts = Array.from({length:50},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*1.3+.3,a:Math.random()*.25+.04,g:Math.random()>.4})); }
+  function frame() {
+    ctx.clearRect(0,0,W,H);
+    for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.g?`rgba(245,197,24,${p.a})`:`rgba(240,140,0,${p.a*.5})`;ctx.fill();}
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<100){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(245,197,24,${.06*(1-d/100)})`;ctx.lineWidth=.5;ctx.stroke();}}
+    requestAnimationFrame(frame);
+  }
+  resize();init();frame();
+  window.addEventListener('resize',()=>{resize();init();});
+</script>
+{{ block "scripts" . }}{{ end }}
+</body>
+</html>
