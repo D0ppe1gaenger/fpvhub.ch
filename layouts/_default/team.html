@@ -18,6 +18,9 @@
   .badge-admin { background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.35); }
   .badge-founder { background: rgba(240,140,0,0.15); color: var(--o); border: 1px solid rgba(240,140,0,0.3); }
   .badge-mod { background: rgba(52,152,219,0.15); color: #3498db; border: 1px solid rgba(52,152,219,0.35); }
+  .status-row { display: flex; align-items: center; gap: 0.4rem; justify-content: center; margin: 0.5rem 0; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #747f8d; flex-shrink: 0; }
+  .status-label { font-size: 0.72rem; color: var(--fm); font-weight: 400; }
   @media (max-width: 640px) { .team-grid { grid-template-columns: 1fr; gap: 1rem; } }
   @media (max-width: 380px) { .team-grid { grid-template-columns: 1fr; } }
 </style>
@@ -36,6 +39,7 @@
     <img src="/team/sven.png" alt="Sven" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="team-avatar-placeholder" style="display:none">S</div>
     <div class="team-name">Sven</div>
+    <div class="status-row"><span class="status-dot"></span><span class="status-label">Offline</span></div>
     <div class="team-badges"><span class="team-badge badge-admin">Administrator</span></div>
   </div>
 
@@ -43,6 +47,7 @@
     <img src="/team/oxivanisher.png" alt="oxivanisher" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="team-avatar-placeholder" style="display:none">O</div>
     <div class="team-name">oxivanisher</div>
+    <div class="status-row"><span class="status-dot"></span><span class="status-label">Offline</span></div>
     <div class="team-badges">
       <span class="team-badge badge-admin">Administrator</span>
       <span class="team-badge badge-founder">Gründer</span>
@@ -53,6 +58,7 @@
     <img src="/team/goblin.png" alt="Goblin" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="team-avatar-placeholder" style="display:none">G</div>
     <div class="team-name">Goblin</div>
+    <div class="status-row"><span class="status-dot"></span><span class="status-label">Offline</span></div>
     <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
   </div>
 
@@ -60,6 +66,7 @@
     <img src="/team/mike.png" alt="Mike" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="team-avatar-placeholder" style="display:none">M</div>
     <div class="team-name">Mike</div>
+    <div class="status-row"><span class="status-dot"></span><span class="status-label">Offline</span></div>
     <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
   </div>
 
@@ -67,6 +74,7 @@
     <img src="/team/gurkenjaeger.png" alt="Gurkenjaeger" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="team-avatar-placeholder" style="display:none">G</div>
     <div class="team-name">Gurkenjaeger</div>
+    <div class="status-row"><span class="status-dot"></span><span class="status-label">Offline</span></div>
     <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
   </div>
 
@@ -74,6 +82,7 @@
     <img src="/team/joe.png" alt="Joe" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="team-avatar-placeholder" style="display:none">J</div>
     <div class="team-name">Joe</div>
+    <div class="status-row"><span class="status-dot"></span><span class="status-label">Offline</span></div>
     <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
   </div>
 
