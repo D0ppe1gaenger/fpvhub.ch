@@ -45,7 +45,7 @@
 {{ define "main" }}
 <div class="hero">
   <div>
-    <div class="pill"><span class="pill-dot"></span> Community aktiv</div>
+    <div class="pill"><span class="pill-dot"></span> <span id="online-count">...</span> online</div>
     <h1>
       Fliege.<br>
       <span class="accent">Verbinde dich.</span><br>
@@ -92,5 +92,17 @@
   </div>
   <div class="tip"><strong>Tipp:</strong> Melde dich zuerst am Desktop oder im Browser an, so sparst du dir die Handynummer-Verifizierung. Einfach auf <em>discordapp.com</em> registrieren und danach die App installieren.</div>
 </div>
-
+{{ define "scripts" }}
+<script>
+fetch('https://fpvhub-bot-production.up.railway.app')
+  .then(r => r.json())
+  .then(data => {
+    const online = Object.values(data).filter(m => m.status !== 'offline').length;
+    const total = Object.values(data).length;
+    document.getElementById('online-count').textContent = online + '/' + total;
+  })
+  .catch(() => {
+    document.getElementById('online-count').textContent = 'Community';
+  });
+</script>
 {{ end }}
