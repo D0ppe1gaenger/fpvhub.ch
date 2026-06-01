@@ -95,7 +95,7 @@ fetch('https://fpvhub-bot-production.up.railway.app')
   .then(data => {
     const colors = { online: '#23d18b', idle: '#f0b132', dnd: '#e74c3c', offline: '#747f8d' };
     const labels = { online: 'Online', idle: 'Abwesend', dnd: 'Bitte nicht stören', offline: 'Offline' };
-    for (const [name, member] of Object.entries(data)) {
+    for (const [name, member] of Object.entries(data.team)) {
       const card = document.querySelector(`[data-member="${name}"]`);
       if (card) {
         const dot = card.querySelector('.status-dot');
