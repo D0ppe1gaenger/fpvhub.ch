@@ -45,7 +45,13 @@
 {{ define "main" }}
 <div class="hero">
   <div>
-    <div class="pill"><span class="pill-dot"></span> <span id="online-count">...</span> online</div>
+    <div class="pill">
+      <span class="pill-dot"></span>
+      <span id="online-count" style="color:var(--g);font-weight:700;">...</span>
+      <span style="color:var(--fm);font-weight:400;margin:0 2px;">/</span>
+      <span id="total-count" style="color:var(--fm);font-weight:400;">...</span>
+      <span style="margin-left:4px;">Mitglieder online</span>
+  </div>
     <h1>
       Fliege.<br>
       <span class="accent">Verbinde dich.</span><br>
@@ -98,9 +104,8 @@
 fetch('https://fpvhub-bot-production.up.railway.app')
   .then(r => r.json())
   .then(data => {
-    const online = Object.values(data).filter(m => m.status !== 'offline').length;
-    const total = Object.values(data).length;
-    document.getElementById('online-count').textContent = online + '/' + total;
+    document.getElementById('online-count').textContent = data.guild.online;
+    document.getElementById('total-count').textContent = data.guild.total;
   })
   .catch(() => {
     document.getElementById('online-count').textContent = 'Community';
