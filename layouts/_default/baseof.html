@@ -32,6 +32,7 @@
   .footer-r a { font-size: 0.73rem; color: var(--fd); text-decoration: none; transition: color 0.15s; }
   .footer-r a:hover { color: var(--g); }
   @media (max-width: 640px) { .navlinks { display: none; } .features { grid-template-columns: 1fr; } .apps { grid-template-columns: 1fr; } }
+  @media (min-width: 641px) { .nav-team { display:inline !important; } }
 </style>
 {{ block "styles" . }}{{ end }}
 </head>
@@ -43,7 +44,7 @@
       <img src="/logo.png" alt="FPV Hub Logo">
       <span class="navlogo-name">FPV<b>HUB</b></span>
     </a>
-    <a href="/team" style="font-size:0.82rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--fm);text-decoration:none;margin-right:1.5rem;">Team</a>
+    <a href="/team" style="font-size:0.82rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--fm);text-decoration:none;margin-right:1.5rem;display:none;" class="nav-team">Team</a>
     <a href="https://discord.gg/pFyZEdx4vQ" class="cta-sm" target="_blank" rel="noopener">Discord beitreten</a>
   </nav>
   {{ block "main" . }}{{ end }}
