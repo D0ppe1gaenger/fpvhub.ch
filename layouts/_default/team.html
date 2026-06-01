@@ -1,0 +1,87 @@
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 4rem 0 3rem; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 1rem; }
+  h1 span { color: var(--g); }
+  .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 52ch; }
+  .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; padding: 3rem 0; }
+  .team-card { background: var(--n1); border: 1px solid var(--bdr); border-radius: 1rem; padding: 2rem 1.5rem; text-align: center; transition: border-color 0.2s, transform 0.2s; }
+  .team-card:hover { border-color: var(--bdrh); transform: translateY(-4px); }
+  .team-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bdrh); margin: 0 auto 1.2rem; display: block; background: var(--n2); }
+  .team-avatar-placeholder { width: 90px; height: 90px; border-radius: 50%; background: rgba(245,197,24,0.08); border: 2px solid var(--bdrh); margin: 0 auto 1.2rem; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--g); }
+  .team-name { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--fg); margin-bottom: 0.3rem; }
+  .team-role { font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fm); }
+  .team-badges { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem; }
+  .team-badge { display: inline-block; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; padding: 0.25rem 0.65rem; border-radius: 2rem; }
+  .badge-admin { background: rgba(245,197,24,0.1); color: var(--g); border: 1px solid var(--bdrh); }
+  .badge-founder { background: rgba(240,140,0,0.15); color: var(--o); border: 1px solid rgba(240,140,0,0.3); }
+  .badge-mod { background: rgba(237,234,224,0.06); color: var(--fm); border: 1px solid var(--bdr); }
+  @media (max-width: 640px) { .team-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; } }
+  @media (max-width: 380px) { .team-grid { grid-template-columns: 1fr; } }
+</style>
+{{ end }}
+
+{{ define "main" }}
+<div class="page-hero">
+  <div class="eyebrow">Das Team</div>
+  <h1>Die Menschen<br>hinter <span>FPV Hub</span></h1>
+  <p class="page-sub">Unser Team besteht aus leidenschaftlichen FPV-Piloten, die diese Community aufgebaut haben und täglich am Laufen halten.</p>
+</div>
+
+<div class="team-grid">
+
+  <div class="team-card">
+    <img src="/team/sven.png" alt="Sven" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="team-avatar-placeholder" style="display:none">S</div>
+    <div class="team-name">Sven</div>
+    <div class="team-role">Administrator</div>
+    <div class="team-badges"><span class="team-badge badge-admin">Admin</span></div>
+  </div>
+
+  <div class="team-card">
+    <img src="/team/oxivanisher.png" alt="oxivanisher" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="team-avatar-placeholder" style="display:none">O</div>
+    <div class="team-name">oxivanisher</div>
+    <div class="team-role">Administrator</div>
+    <div class="team-badges">
+      <span class="team-badge badge-admin">Admin</span>
+      <span class="team-badge badge-founder">Gründer</span>
+    </div>
+  </div>
+
+  <div class="team-card">
+    <img src="/team/goblin.png" alt="Goblin" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="team-avatar-placeholder" style="display:none">G</div>
+    <div class="team-name">Goblin</div>
+    <div class="team-role">Moderator</div>
+    <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
+  </div>
+
+  <div class="team-card">
+    <img src="/team/mike.png" alt="Mike" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="team-avatar-placeholder" style="display:none">M</div>
+    <div class="team-name">Mike</div>
+    <div class="team-role">Moderator</div>
+    <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
+  </div>
+
+  <div class="team-card">
+    <img src="/team/gurkenjaeger.png" alt="Gurkenjaeger" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="team-avatar-placeholder" style="display:none">G</div>
+    <div class="team-name">Gurkenjaeger</div>
+    <div class="team-role">Moderator</div>
+    <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
+  </div>
+
+  <div class="team-card">
+    <img src="/team/joe.png" alt="Joe" class="team-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="team-avatar-placeholder" style="display:none">J</div>
+    <div class="team-name">Joe</div>
+    <div class="team-role">Moderator</div>
+    <div class="team-badges"><span class="team-badge badge-mod">Mod</span></div>
+  </div>
+
+</div>
+{{ end }}
