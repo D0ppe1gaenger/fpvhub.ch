@@ -16,6 +16,16 @@
   }
   html, body { background: var(--n3); color: var(--fg); font-family: 'Space Grotesk', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
   #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .nav-right { display: flex; align-items: center; gap: 1rem; }
+  .nav-link { font-size: 0.82rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fm); text-decoration: none; transition: color 0.15s; }
+  .nav-link:hover { color: var(--g); }
+  .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; }
+  .hamburger span { display: block; width: 22px; height: 2px; background: var(--fg); border-radius: 2px; transition: all 0.3s; }
+  .mobile-menu { display: none; flex-direction: column; gap: 0; background: var(--n1); border: 1px solid var(--bdr); border-radius: 0.75rem; padding: 0.5rem; margin-top: 0.5rem; }
+  .mobile-menu a { padding: 0.85rem 1rem; font-size: 0.9rem; font-weight: 500; color: var(--fm); text-decoration: none; border-radius: 0.5rem; transition: background 0.15s, color 0.15s; }
+  .mobile-menu a:hover { background: var(--n0); color: var(--g); }
+  .mobile-menu.open { display: flex; }
+  @media (max-width: 640px) { .nav-link { display: none; } .cta-sm { display: none; } .hamburger { display: flex; } }
   .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 2rem; }
   nav { display: flex; align-items: center; justify-content: space-between; padding: 1.6rem 0; border-bottom: 1px solid var(--bdr); }
   .navlogo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
@@ -31,8 +41,6 @@
   .footer-r { display: flex; align-items: center; gap: 1.2rem; }
   .footer-r a { font-size: 0.73rem; color: var(--fd); text-decoration: none; transition: color 0.15s; }
   .footer-r a:hover { color: var(--g); }
-  @media (max-width: 640px) { .navlinks { display: none; } .features { grid-template-columns: 1fr; } .apps { grid-template-columns: 1fr; } }
-  @media (min-width: 641px) { .nav-team { display:inline !important; } }
 </style>
 {{ block "styles" . }}{{ end }}
 </head>
@@ -44,9 +52,18 @@
       <img src="/logo.png" alt="FPV Hub Logo">
       <span class="navlogo-name">FPV<b>HUB</b></span>
     </a>
-    <a href="/team" style="font-size:0.82rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--fm);text-decoration:none;margin-right:1.5rem;display:none;" class="nav-team">Team</a>
-    <a href="https://discord.gg/pFyZEdx4vQ" class="cta-sm" target="_blank" rel="noopener">Discord beitreten</a>
+    <div class="nav-right">
+      <a href="/team" class="nav-link">Team</a>
+      <a href="https://discord.gg/pFyZEdx4vQ" class="cta-sm" target="_blank" rel="noopener">Discord beitreten</a>
+      <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+    </div>
   </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="/team" onclick="toggleMenu()">Team</a>
+    <a href="https://discord.gg/pFyZEdx4vQ" target="_blank" rel="noopener" onclick="toggleMenu()">Discord beitreten</a>
+  </div>
   {{ block "main" . }}{{ end }}
   <footer>
     <div class="footer-l">
@@ -72,6 +89,17 @@
   }
   resize();init();frame();
   window.addEventListener('resize',()=>{resize();init();});
+</script>
+ <script>
+  function toggleMenu() {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  }
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobileMenu');
+    if (!e.target.closest('.nav-right') && !e.target.closest('.mobile-menu')) {
+      menu.classList.remove('open');
+    }
+  });
 </script>
 {{ block "scripts" . }}{{ end }}
 </body>
