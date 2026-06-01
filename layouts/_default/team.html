@@ -3,7 +3,7 @@
   .page-hero { padding: 4rem 0 3rem; }
   .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
   .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
-  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 1rem; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 1rem; -webkit-text-stroke: 0; }
   h1 span { color: var(--g); }
   .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 52ch; }
   .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; padding: 3rem 0; }
@@ -18,7 +18,7 @@
   .badge-admin { background: rgba(245,197,24,0.1); color: var(--g); border: 1px solid var(--bdrh); }
   .badge-founder { background: rgba(240,140,0,0.15); color: var(--o); border: 1px solid rgba(240,140,0,0.3); }
   .badge-mod { background: rgba(237,234,224,0.06); color: var(--fm); border: 1px solid var(--bdr); }
-  @media (max-width: 640px) { .team-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; } }
+  @media (max-width: 640px) { .team-grid { grid-template-columns: 1fr; gap: 1rem; } }
   @media (max-width: 380px) { .team-grid { grid-template-columns: 1fr; } }
 </style>
 {{ end }}
