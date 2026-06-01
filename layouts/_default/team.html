@@ -103,7 +103,12 @@ fetch('https://fpvhub-bot-production.up.railway.app')
         const avatar = card.querySelector('.team-avatar');
         if (dot) dot.style.background = colors[member.status] || colors.offline;
         if (label) label.textContent = labels[member.status] || 'Offline';
-        if (avatar && member.avatar) avatar.src = member.avatar;
+        if (avatar && member.avatar) {
+          avatar.src = member.avatar;
+          avatar.style.display = 'block';
+          const placeholder = card.querySelector('.team-avatar-placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+        }
       }
     }
   })
