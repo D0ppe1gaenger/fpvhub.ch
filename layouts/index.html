@@ -39,6 +39,12 @@
   .tip { margin-top: 2.5rem; padding: 1.2rem 1.5rem; background: rgba(245,197,24,0.05); border-left: 2px solid var(--g); border-radius: 0 0.5rem 0.5rem 0; font-size: 0.84rem; line-height: 1.75; color: var(--fm); font-weight: 300; }
   .tip strong { color: var(--g); font-weight: 600; }
   @media (max-width: 640px) { .hero { grid-template-columns: 1fr; padding: 3rem 0 2rem; } .hero-visual { display: none; } .features { grid-template-columns: 1fr; } .apps { grid-template-columns: 1fr; } }
+  .hero-stats { display: flex; align-items: center; gap: 1.5rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(245,197,24,0.08); }
+  .hero-stat { text-align: left; }
+  .hero-stat-val { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--g); line-height: 1; margin-bottom: 0.2rem; }
+  .hero-stat-lbl { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fd); }
+  .hero-stat-div { width: 1px; height: 32px; background: rgba(245,197,24,0.1); flex-shrink: 0; }
+@media (max-width: 640px) { .hero-stats { gap: 1rem; } }
 </style>
 {{ end }}
 
@@ -59,6 +65,22 @@
       <span class="stroke">Wachse.</span>
     </h1>
     <p class="hero-sub">FPV Hub ist die zentrale Anlaufstelle für alle FPV-Piloten in der Schweiz, Deutschland und Österreich. Ob Einsteiger oder Pro, tausch dich aus, entdecke neue Spots und sei Teil der wachsenden Community.</p>
+      <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="member-total">500+</div>
+        <div class="hero-stat-lbl">Mitglieder</div>
+      </div>
+      <div class="hero-stat-div"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">CH · DE · AT</div>
+        <div class="hero-stat-lbl">Regionen</div>
+      </div>
+      <div class="hero-stat-div"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">24/7</div>
+        <div class="hero-stat-lbl">Discord aktiv</div>
+      </div>
+</div>
   </div>
   <div class="hero-visual">
     <div class="logowrap">
