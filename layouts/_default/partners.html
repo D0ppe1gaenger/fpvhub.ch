@@ -1,0 +1,109 @@
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 4rem 0 3rem; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 1rem; -webkit-text-stroke: 0; }
+  h1 span { color: var(--g); }
+  .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 52ch; }
+
+  /* Partner Grid */
+  .partners-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; padding: 3rem 0; }
+
+  /* Partner Card */
+  .partner-card { background: var(--n1); border: 1px solid var(--bdr); border-radius: 1rem; padding: 2rem; transition: border-color 0.2s, transform 0.2s; display: flex; flex-direction: column; gap: 1.25rem; }
+  .partner-card:hover { border-color: var(--bdrh); transform: translateY(-3px); }
+
+  .partner-card-top { display: flex; align-items: center; gap: 1rem; }
+  .partner-logo { width: 60px; height: 60px; border-radius: 0.75rem; object-fit: cover; background: var(--n2); border: 1px solid var(--bdr); flex-shrink: 0; }
+  .partner-logo-placeholder { width: 60px; height: 60px; border-radius: 0.75rem; background: rgba(245,197,24,0.08); border: 1px solid var(--bdrh); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--g); flex-shrink: 0; }
+  .partner-info { flex: 1; }
+  .partner-name { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--fg); margin-bottom: 0.25rem; }
+  .partner-category { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--o); }
+
+  .partner-desc { font-size: 0.88rem; line-height: 1.7; color: var(--fm); font-weight: 300; }
+
+  .partner-links { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: auto; }
+  .partner-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.4rem 0.9rem; border-radius: 2rem; text-decoration: none; transition: background 0.15s, color 0.15s; border: 1px solid var(--bdr); color: var(--fm); }
+  .partner-link:hover { border-color: var(--bdrh); color: var(--g); }
+  .partner-link.yt { border-color: rgba(255,0,0,0.3); color: #ff4444; }
+  .partner-link.yt:hover { background: rgba(255,0,0,0.08); }
+  .partner-link.ig { border-color: rgba(225,48,108,0.3); color: #e1306c; }
+  .partner-link.ig:hover { background: rgba(225,48,108,0.08); }
+  .partner-link.web { border-color: var(--bdrh); color: var(--g); }
+  .partner-link.web:hover { background: rgba(245,197,24,0.08); }
+
+  /* Coming Soon Card */
+  .partner-card.coming-soon { border-style: dashed; opacity: 0.5; cursor: default; align-items: center; justify-content: center; text-align: center; min-height: 200px; }
+  .partner-card.coming-soon:hover { transform: none; border-color: var(--bdr); }
+  .cs-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+  .cs-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: var(--fg); margin-bottom: 0.3rem; }
+  .cs-sub { font-size: 0.82rem; color: var(--fm); font-weight: 300; }
+
+  /* Become Partner CTA */
+  .become-partner { margin-top: 1rem; background: linear-gradient(135deg, rgba(245,197,24,0.07), rgba(240,140,0,0.03)); border: 1px solid var(--bdrh); border-radius: 1rem; padding: 2.5rem 2rem; text-align: center; }
+  .become-partner h2 { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: 0.75rem; -webkit-text-stroke: 0; }
+  .become-partner p { font-size: 0.95rem; color: var(--fm); font-weight: 300; line-height: 1.75; max-width: 46ch; margin: 0 auto 1.5rem; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--n3); background: var(--g); padding: 0.8rem 1.8rem; border-radius: 0.5rem; text-decoration: none; transition: background 0.15s, transform 0.1s; }
+  .btn-primary:hover { background: var(--o); transform: translateY(-1px); }
+
+  @media (max-width: 640px) { .partners-grid { grid-template-columns: 1fr; } }
+</style>
+{{ end }}
+
+{{ define "main" }}
+<div class="page-hero">
+  <div class="eyebrow">Partner</div>
+  <h1>Unsere <span>Partner</span></h1>
+  <p class="page-sub">Wir arbeiten mit leidenschaftlichen Creatorn, Shops und Communities zusammen, die die FPV-Welt mitgestalten.</p>
+</div>
+
+<div class="partners-grid">
+
+  <!-- Partner 1 - Coming Soon -->
+  <div class="partner-card">
+    <div class="partner-card-top">
+      <div class="partner-logo-placeholder">?</div>
+      <div class="partner-info">
+        <div class="partner-name">Coming Soon</div>
+        <div class="partner-category">YouTube Creator</div>
+      </div>
+    </div>
+    <p class="partner-desc">Unser erster offizieller Partner wird bald bekannt gegeben. Bleib gespannt!</p>
+    <div class="partner-links">
+      <span class="partner-link yt">YouTube</span>
+      <span class="partner-link ig">Instagram</span>
+      <span class="partner-link web">Website</span>
+    </div>
+  </div>
+
+  <!-- Platzhalter -->
+  <div class="partner-card coming-soon">
+    <div class="cs-icon">🤝</div>
+    <div class="cs-title">Bald dabei</div>
+    <div class="cs-sub">Weitere Partner folgen</div>
+  </div>
+
+  <div class="partner-card coming-soon">
+    <div class="cs-icon">🤝</div>
+    <div class="cs-title">Bald dabei</div>
+    <div class="cs-sub">Weitere Partner folgen</div>
+  </div>
+
+  <div class="partner-card coming-soon">
+    <div class="cs-icon">🤝</div>
+    <div class="cs-title">Bald dabei</div>
+    <div class="cs-sub">Weitere Partner folgen</div>
+  </div>
+
+</div>
+
+<div class="become-partner">
+  <h2>Partner werden?</h2>
+  <p>Du bist Creator, Shop oder Community und möchtest Teil von FPV Hub werden? Melde dich bei uns auf Discord!</p>
+  <a href="https://discord.gg/pFyZEdx4vQ" class="btn-primary" target="_blank" rel="noopener">
+    Kontakt aufnehmen →
+  </a>
+</div>
+
+{{ end }}
