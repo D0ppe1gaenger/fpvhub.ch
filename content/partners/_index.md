@@ -1,4 +1,4 @@
 ---
-title: "Partner – FPV Hub"
+title: "Partner - FPV Hub"
 layout: "partners"
 ---
