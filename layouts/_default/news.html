@@ -38,6 +38,8 @@
   .news-card:not(.collapsed) .news-chevron { transform: rotate(90deg); }
   @keyframes skeleton-pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
   .sk-line { background: rgba(245,197,24,0.12); border-radius: 4px; animation: skeleton-pulse 1.5s ease-in-out infinite; }
+  .load-more-btn { display: block; margin: 1.5rem auto 0; background: var(--n1); border: 1px solid var(--bdrh); color: var(--g); font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600; padding: 0.75rem 2rem; border-radius: 0.6rem; cursor: pointer; transition: background 0.15s; }
+  .load-more-btn:hover { background: var(--n0); }
 </style>
 {{ end }}
 
@@ -64,18 +66,34 @@
 
 {{ define "scripts" }}
 <script>
+const PAGE_SIZE = 5;
+let allNews = [];
+let shownCount = 0;
+
 fetch('https://fpvhub-bot-production.up.railway.app')
   .then(r => r.json())
   .then(data => {
-    const list = document.getElementById('news-list');
-    const news = data.news || [];
+    allNews = data.news || [];
 
-    if (news.length === 0) {
-      list.innerHTML = '<div class="news-empty"><div class="news-empty-icon">📰</div>Noch keine News vorhanden.</div>';
+    if (allNews.length === 0) {
+      document.getElementById('news-list').innerHTML = '<div class="news-empty"><div class="news-empty-icon">📰</div>Noch keine News vorhanden.</div>';
       return;
     }
 
-    list.innerHTML = news.map((item, index) => {
+    renderNextPage();
+  })
+  .catch(() => {
+    document.getElementById('news-list').innerHTML = '<div class="news-empty"><div class="news-empty-icon">⚠️</div>News konnten nicht geladen werden.</div>';
+  });
+
+function renderNextPage() {
+  const list = document.getElementById('news-list');
+  const nextItems = allNews.slice(shownCount, shownCount + PAGE_SIZE);
+
+  if (shownCount === 0) list.innerHTML = '';
+
+  const html = nextItems.map((item, i) => {
+    const index = shownCount + i;
       const date = new Date(item.timestamp);
       const dateStr = date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
@@ -109,19 +127,26 @@ fetch('https://fpvhub-bot-production.up.railway.app')
 
     const isFirst = index === 0;
     return `
-       <div class="news-card ${isFirst ? '' : 'collapsed'}" onclick="this.classList.toggle('collapsed')">
+      <div class="news-card ${isFirst ? '' : 'collapsed'}" onclick="this.classList.toggle('collapsed')">
         <div class="news-time">
-           ${dateStr} · ${timeStr}
-           <span class="news-chevron">›</span>
-          </div>
-          <div class="news-content">${content}</div>
-         ${images}
-         </div>
-       `;
-    }).join('');
-  })
-  .catch(() => {
-    document.getElementById('news-list').innerHTML = '<div class="news-empty"><div class="news-empty-icon">⚠️</div>News konnten nicht geladen werden.</div>';
-  });
+          ${dateStr} · ${timeStr}
+          <span class="news-chevron">›</span>
+        </div>
+        <div class="news-content">${content}</div>
+        ${images}
+      </div>
+    `;
+  }).join('');
+
+  list.insertAdjacentHTML('beforeend', html);
+  shownCount += nextItems.length;
+
+  const existingBtn = document.getElementById('load-more-btn');
+  if (existingBtn) existingBtn.remove();
+
+  if (shownCount < allNews.length) {
+    list.insertAdjacentHTML('afterend', '<button id="load-more-btn" class="load-more-btn" onclick="renderNextPage()">Mehr laden (' + (allNews.length - shownCount) + ')</button>');
+  }
+}
 </script>
 {{ end }}
