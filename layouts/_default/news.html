@@ -1,0 +1,85 @@
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 4rem 0 3rem; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 1rem; -webkit-text-stroke: 0; }
+  h1 span { color: var(--g); }
+  .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 52ch; }
+
+  .news-list { display: flex; flex-direction: column; gap: 1rem; padding: 3rem 0; }
+
+  .news-card { background: var(--n1); border: 1px solid var(--bdr); border-radius: 1rem; padding: 1.5rem 1.75rem; transition: border-color 0.2s; }
+  .news-card:hover { border-color: var(--bdrh); }
+
+  .news-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .news-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--n2); border: 1px solid var(--bdr); flex-shrink: 0; }
+  .news-author { font-size: 0.88rem; font-weight: 600; color: var(--fg); }
+  .news-time { font-size: 0.75rem; color: var(--fd); margin-left: auto; flex-shrink: 0; }
+
+  .news-content { font-size: 0.92rem; line-height: 1.7; color: var(--fm); font-weight: 300; white-space: pre-wrap; word-break: break-word; }
+
+  .news-image { width: 100%; max-height: 320px; object-fit: cover; border-radius: 0.6rem; margin-top: 1rem; display: block; }
+
+  .news-empty { text-align: center; padding: 4rem 1rem; color: var(--fm); }
+  .news-empty-icon { font-size: 2rem; margin-bottom: 1rem; opacity: 0.5; }
+
+  .news-loading { text-align: center; padding: 3rem 1rem; color: var(--fd); font-size: 0.85rem; }
+</style>
+{{ end }}
+
+{{ define "main" }}
+<div class="page-hero">
+  <div class="eyebrow">News</div>
+  <h1>FPV Hub <span>News</span></h1>
+  <p class="page-sub">Die neuesten Updates und Ankündigungen direkt aus unserem Discord-Server.</p>
+</div>
+
+<div class="news-list" id="news-list">
+  <div class="news-loading">News werden geladen...</div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+fetch('https://fpvhub-bot-production.up.railway.app')
+  .then(r => r.json())
+  .then(data => {
+    const list = document.getElementById('news-list');
+    const news = data.news || [];
+
+    if (news.length === 0) {
+      list.innerHTML = '<div class="news-empty"><div class="news-empty-icon">📰</div>Noch keine News vorhanden.</div>';
+      return;
+    }
+
+    list.innerHTML = news.map(item => {
+      const date = new Date(item.timestamp);
+      const dateStr = date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const timeStr = date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+
+      const images = (item.attachments || [])
+        .filter(a => a.contentType && a.contentType.startsWith('image/'))
+        .map(a => `<img src="${a.url}" class="news-image" alt="Anhang" loading="lazy">`)
+        .join('');
+
+      const content = (item.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      return `
+        <div class="news-card">
+          <div class="news-head">
+            <img src="${item.authorAvatar}" class="news-avatar" alt="${item.author}">
+            <span class="news-author">${item.author}</span>
+            <span class="news-time">${dateStr} · ${timeStr}</span>
+          </div>
+          <div class="news-content">${content}</div>
+          ${images}
+        </div>
+      `;
+    }).join('');
+  })
+  .catch(() => {
+    document.getElementById('news-list').innerHTML = '<div class="news-empty"><div class="news-empty-icon">⚠️</div>News konnten nicht geladen werden.</div>';
+  });
+</script>
+{{ end }}
