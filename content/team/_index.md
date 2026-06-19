@@ -1,4 +1,4 @@
 ---
-title: "Team – FPV Hub"
+title: "Team - FPV Hub"
 layout: "team"
 ---
