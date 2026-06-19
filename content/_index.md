@@ -1,3 +1,3 @@
 ---
-title: "FPV Hub – FPV Community"
+title: "FPV Hub - FPV Community"
 ---
