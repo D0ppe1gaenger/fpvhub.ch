@@ -29,6 +29,13 @@
   .news-empty-icon { font-size: 2rem; margin-bottom: 1rem; opacity: 0.5; }
 
   .news-loading { text-align: center; padding: 3rem 1rem; color: var(--fd); font-size: 0.85rem; }
+  .news-card { cursor: pointer; }
+  .news-card.collapsed .news-content,
+  .news-card.collapsed .news-image { display: none; }
+  .news-card.collapsed .news-time { margin-bottom: 0; }
+  .news-chevron { margin-left: auto; transition: transform 0.2s; color: var(--fd); font-size: 1rem; }
+  .news-card.collapsed .news-chevron { transform: rotate(0deg); }
+  .news-card:not(.collapsed) .news-chevron { transform: rotate(90deg); }
 </style>
 {{ end }}
 
@@ -57,7 +64,7 @@ fetch('https://fpvhub-bot-production.up.railway.app')
       return;
     }
 
-    list.innerHTML = news.map(item => {
+    list.innerHTML = news.map((item, index) => {
       const date = new Date(item.timestamp);
       const dateStr = date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
@@ -89,13 +96,17 @@ fetch('https://fpvhub-bot-production.up.railway.app')
 
     const content = parseDiscordMarkdown(item.content || '');
 
-      return `
-        <div class="news-card">
-          <div class="news-time">${dateStr} · ${timeStr}</div>
+    const isFirst = index === 0;
+    return `
+       <div class="news-card ${isFirst ? '' : 'collapsed'}" onclick="this.classList.toggle('collapsed')">
+        <div class="news-time">
+           ${dateStr} · ${timeStr}
+           <span class="news-chevron">›</span>
+          </div>
           <div class="news-content">${content}</div>
-          ${images}
-        </div>
-      `;
+         ${images}
+         </div>
+       `;
     }).join('');
   })
   .catch(() => {
