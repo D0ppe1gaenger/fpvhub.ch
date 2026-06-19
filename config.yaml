@@ -1,4 +1,4 @@
 baseURL: "https://fpvhub.ch"
 title: "FPV Hub"
 defaultContentLanguage: de
-disableKinds: ["taxonomy", "term", "RSS", "sitemap"]
+disableKinds: ["taxonomy", "term", "RSS"]
