@@ -1,4 +1,4 @@
 ---
-title: "News – FPV Hub"
+title: "News - FPV Hub"
 layout: "news"
 ---
