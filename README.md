@@ -1,11 +1,16 @@
-# fpvhub.ch
+# 🚧 fpvhub.ch - Website in Wartung
 
-This is the repository containing the source files for the fpvhub.ch website.
+Diese Website wird aktuell überarbeitet und ist vorübergehend nicht vollständig verfügbar.
 
-## Resources
+## In der Zwischenzeit: Tritt unserem Discord bei!
 
-Theme: https://themes.gohugo.io/themes/hugo-theme-monochrome/
+👉 **[discord.gg/pFyZEdx4vQ](https://discord.gg/pFyZEdx4vQ)**
 
-Config Docs: https://kaiiiz.github.io/hugo-theme-monochrome/configuration/
+Dort findest du:
+- Die aktive FPV-Community der Schweiz
+- Aktuelle News und Updates
+- Hilfe rund um FPV, Setups und Fluglokationen
 
-Layouts: https://kaiiiz.github.io/hugo-theme-monochrome/layouts/
+---
+
+© fpvhub.ch
