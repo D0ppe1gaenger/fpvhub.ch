@@ -1,0 +1,218 @@
+{{/*
+  layouts/models/single.html
+  Detail-Seite für ein einzelnes Modell – folgt dem bestehenden
+  Design-System (page-hero, eyebrow, card-Pattern).
+  3D-Preview via three.js STLLoader (CDN, kein Build-Step nötig).
+*/}}
+
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 3rem 0 2rem; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
+  .back-link { font-size: 0.82rem; font-weight: 500; color: var(--fm); text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1.5rem; transition: color 0.15s; }
+  .back-link:hover { color: var(--g); }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.01em; margin-bottom: 0.8rem; -webkit-text-stroke: 0; }
+  .model-meta-line { font-size: 0.88rem; color: var(--fm); font-weight: 300; margin-bottom: 2rem; }
+  .model-meta-line b { color: var(--fg); font-weight: 600; }
+
+  .stl-viewer {
+    width: 100%;
+    height: 420px;
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    border-radius: 1rem;
+    margin-bottom: 1.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .viewer-loading {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--fd);
+    font-size: 0.85rem;
+  }
+
+  .model-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1.25rem;
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    border-radius: 1rem;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.75rem;
+  }
+  .model-meta-grid div { display: flex; flex-direction: column; gap: 0.3rem; }
+  .model-meta-grid strong { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g); }
+  .model-meta-grid span { font-size: 0.92rem; color: var(--fg); font-weight: 400; }
+
+  .model-description { font-size: 0.92rem; line-height: 1.75; color: var(--fm); font-weight: 300; margin-bottom: 1.75rem; max-width: 64ch; }
+
+  .print-settings {
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    border-radius: 1rem;
+    padding: 1.75rem;
+    margin-bottom: 1.75rem;
+  }
+  .print-settings h3 { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 800; margin-bottom: 1rem; -webkit-text-stroke: 0; }
+  .print-settings ul { list-style: none; margin: 0 0 1.5rem; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .print-settings li { font-size: 0.88rem; color: var(--fm); font-weight: 300; }
+  .print-settings li b { color: var(--fg); font-weight: 600; }
+
+  .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--n3); background: var(--g); padding: 0.8rem 1.8rem; border-radius: 0.5rem; text-decoration: none; transition: background 0.15s, transform 0.1s; }
+  .btn-primary:hover { background: var(--o); transform: translateY(-1px); }
+
+  .download-count { font-size: 0.78rem; color: var(--fd); margin-bottom: 2rem; }
+
+  .report-block { border-top: 1px solid var(--bdr); padding-top: 1.5rem; margin-bottom: 3rem; }
+  .report-block summary { font-size: 0.85rem; font-weight: 600; color: var(--fm); cursor: pointer; }
+  .report-block summary:hover { color: var(--g); }
+  .report-block p { font-size: 0.85rem; color: var(--fm); font-weight: 300; line-height: 1.7; margin-top: 0.75rem; }
+  .report-block a { color: var(--g); text-decoration: none; }
+  .report-block a:hover { text-decoration: underline; }
+</style>
+{{ end }}
+
+{{ define "main" }}
+{{ $license := .Params.license }}
+{{ $licenseLabel := "Unbekannte Lizenz" }}
+{{ if eq $license "CC0-1.0" }}{{ $licenseLabel = "Frei nutzbar" }}{{ end }}
+{{ if eq $license "CC-BY-NC-4.0" }}{{ $licenseLabel = "Nur privat" }}{{ end }}
+{{ if eq $license "CC-BY-NC-ND-4.0" }}{{ $licenseLabel = "Nur mit Erlaubnis des Autors" }}{{ end }}
+
+<div class="page-hero">
+  <a href="/models/" class="back-link">← Zurück zur Übersicht</a>
+  <div class="eyebrow">{{ .Params.category }}</div>
+  <h1>{{ .Params.title }}</h1>
+  <p class="model-meta-line">
+    von <b>{{ .Params.author.display_name }}</b> · eingereicht am {{ .Date.Format "02.01.2006" }} · Lizenz: {{ $licenseLabel }}
+  </p>
+</div>
+
+<div id="stl-viewer" class="stl-viewer">
+  <p class="viewer-loading">3D-Vorschau wird geladen …</p>
+</div>
+
+<div class="model-meta-grid">
+  <div>
+    <strong>Kategorie</strong>
+    <span>{{ .Params.category }}</span>
+  </div>
+  <div>
+    <strong>Frame-Grösse</strong>
+    <span>{{ delimit .Params.frame_size ", " }}</span>
+  </div>
+  <div>
+    <strong>Mount-Pattern</strong>
+    <span>{{ .Params.mount_pattern }}</span>
+  </div>
+  <div>
+    <strong>Material</strong>
+    <span>{{ delimit .Params.material_recommendation ", " }}</span>
+  </div>
+</div>
+
+<div class="model-description">
+  {{ .Content }}
+</div>
+
+{{ range .Params.files }}
+<div class="print-settings">
+  <h3>Druckeinstellungen</h3>
+  <ul>
+    <li><b>Layer Height:</b> {{ .print_settings.layer_height }} mm</li>
+    <li><b>Infill:</b> {{ .print_settings.infill }} %</li>
+    <li><b>Supports:</b> {{ if .print_settings.supports }}Ja{{ else }}Nein{{ end }}</li>
+  </ul>
+  <a href="{{ $.RelPermalink }}{{ .filename }}" class="btn-primary" download>
+    {{ .filename }} herunterladen
+  </a>
+</div>
+{{ end }}
+
+<p class="download-count">{{ .Params.download_count }} Downloads</p>
+
+<details class="report-block">
+  <summary>Problem mit diesem Modell melden</summary>
+  <p>
+    Bei Urheberrechtsverletzungen, falschen Angaben oder defekten Dateien:
+    bitte im <a href="https://discord.gg/pFyZEdx4vQ" target="_blank" rel="noopener">Discord</a>
+    im #mod-support Channel melden, mit Link zu dieser Seite.
+  </p>
+</details>
+{{ end }}
+
+{{ define "scripts" }}
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+import { STLLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/STLLoader.js';
+
+const container = document.getElementById('stl-viewer');
+const stlUrl = '{{ (index .Params.files 0).filename }}';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.innerHTML = '';
+container.appendChild(renderer.domElement);
+
+const light1 = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+scene.add(light1);
+const light2 = new THREE.DirectionalLight(0xffffff, 0.6);
+light2.position.set(1, 1, 1);
+scene.add(light2);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+const loader = new STLLoader();
+loader.load(
+  stlUrl,
+  (geometry) => {
+    geometry.center();
+    const material = new THREE.MeshStandardMaterial({ color: 0xf5c518, metalness: 0.15, roughness: 0.55 });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -Math.PI / 2;
+    scene.add(mesh);
+
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = box.getSize(new THREE.Vector3()).length();
+    camera.position.set(size * 0.8, size * 0.5, size * 0.8);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  },
+  undefined,
+  (err) => {
+    container.innerHTML = '<p class="viewer-loading">Vorschau konnte nicht geladen werden (Datei evtl. zu gross oder ungültig).</p>';
+    console.error(err);
+  }
+);
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+</script>
+{{ end }}

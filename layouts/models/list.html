@@ -1,0 +1,222 @@
+{{/*
+  layouts/models/list.html
+  Übersichtsseite für /models/ – folgt dem bestehenden Design-System
+  (page-hero, eyebrow, card-grid wie bei team/partners/news).
+  Zeigt alle approved Modelle (drafts werden von Hugo automatisch
+  ausgeschlossen) als Karten-Grid mit clientseitigem Filter.
+
+  Voraussetzung: Modelle liegen unter content/models/<id>/index.md
+  (siehe hugo-content/models-build.md, Variante 1)
+*/}}
+
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 4rem 0 3rem; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 1rem; -webkit-text-stroke: 0; }
+  h1 span { color: var(--g); }
+  .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 52ch; }
+
+  .hero-actions { margin-top: 1.75rem; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--n3); background: var(--g); padding: 0.8rem 1.8rem; border-radius: 0.5rem; text-decoration: none; transition: background 0.15s, transform 0.1s; }
+  .btn-primary:hover { background: var(--o); transform: translateY(-1px); }
+
+  .models-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0 0 2rem;
+  }
+  .models-filters input,
+  .models-filters select {
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    color: var(--fg);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: 0.6rem;
+    flex: 1 1 180px;
+    transition: border-color 0.15s;
+  }
+  .models-filters input::placeholder { color: var(--fd); }
+  .models-filters input:focus,
+  .models-filters select:focus { outline: none; border-color: var(--bdrh); }
+
+  .models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1.25rem;
+    padding-bottom: 3rem;
+  }
+
+  .model-card {
+    display: block;
+    text-decoration: none;
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .model-card:hover { border-color: var(--bdrh); transform: translateY(-3px); }
+
+  .model-card-thumb {
+    aspect-ratio: 1 / 1;
+    background: var(--n2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .model-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .model-card-thumb-placeholder {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    color: var(--g);
+    opacity: 0.4;
+    font-size: 1.4rem;
+    letter-spacing: 0.05em;
+  }
+
+  .model-card-body { padding: 1.1rem 1.25rem 1.25rem; }
+  .model-card-body h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: 0.4rem;
+    -webkit-text-stroke: 0;
+  }
+  .model-card-meta { font-size: 0.78rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--g); margin-bottom: 0.4rem; }
+  .model-card-author { font-size: 0.8rem; color: var(--fm); font-weight: 300; }
+
+  .models-empty { text-align: center; padding: 4rem 1rem; color: var(--fm); }
+  .models-empty.hidden { display: none; }
+  .models-empty-icon { font-size: 2rem; margin-bottom: 1rem; opacity: 0.5; }
+
+  @media (max-width: 640px) {
+    .models-filters { flex-direction: column; }
+  }
+</style>
+{{ end }}
+
+{{ define "main" }}
+<div class="page-hero">
+  <div class="eyebrow">FPV-Teile</div>
+  <h1>FPV-Teile <span>Datenbank</span></h1>
+  <p class="page-sub">3D-druckbare Teile aus der FPV Hub Community – getestet, kategorisiert und frei verfügbar.</p>
+  <div class="hero-actions">
+    <a href="/models/submit/" class="btn-primary">Eigenes Modell einreichen →</a>
+  </div>
+</div>
+
+<div class="models-filters">
+  <input type="text" id="filter-search" placeholder="Suche nach Titel oder Beschreibung …">
+
+  <select id="filter-category">
+    <option value="">Alle Kategorien</option>
+    <option value="camera-mount">Kamera-Mount</option>
+    <option value="antenna-mount">Antennen-Mount</option>
+    <option value="frame-part">Frame-Teil</option>
+    <option value="canopy">Canopy</option>
+    <option value="battery-strap">Akku-Halterung</option>
+    <option value="spare-part">Ersatzteil</option>
+    <option value="tool">Werkzeug</option>
+    <option value="other">Sonstiges</option>
+  </select>
+
+  <select id="filter-frame-size">
+    <option value="">Alle Frame-Grössen</option>
+    <option value="3in">3"</option>
+    <option value="5in">5"</option>
+    <option value="7in">7"</option>
+    <option value="10in">10"</option>
+    <option value="other">Andere/Universal</option>
+  </select>
+
+  <select id="filter-material">
+    <option value="">Alle Materialien</option>
+    <option value="TPU">TPU</option>
+    <option value="PETG">PETG</option>
+    <option value="ABS">ABS</option>
+    <option value="PLA">PLA</option>
+    <option value="PC">PC</option>
+  </select>
+</div>
+
+<div class="models-grid" id="models-grid">
+  {{ range .Pages }}
+  {{ if eq .Params.status "approved" }}
+  <a href="{{ .RelPermalink }}" class="model-card"
+     data-title="{{ .Params.title | lower }}"
+     data-category="{{ .Params.category }}"
+     data-frame-size="{{ delimit .Params.frame_size "," }}"
+     data-material="{{ delimit .Params.material_recommendation "," }}"
+     data-description="{{ .Params.description | lower }}">
+
+    <div class="model-card-thumb">
+      {{ if .Params.thumbnail }}
+      <img src="{{ .RelPermalink }}{{ .Params.thumbnail }}" alt="{{ .Params.title }}" loading="lazy">
+      {{ else }}
+      <div class="model-card-thumb-placeholder">STL</div>
+      {{ end }}
+    </div>
+
+    <div class="model-card-body">
+      <h3>{{ .Params.title }}</h3>
+      <p class="model-card-meta">{{ delimit .Params.frame_size ", " }} · {{ delimit .Params.material_recommendation ", " }}</p>
+      <p class="model-card-author">von {{ .Params.author.display_name }}</p>
+    </div>
+
+  </a>
+  {{ end }}
+  {{ end }}
+</div>
+
+<div id="no-results" class="models-empty hidden">
+  <div class="models-empty-icon">🔍</div>
+  Keine Modelle gefunden. Filter anpassen?
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+(function () {
+  const search = document.getElementById('filter-search');
+  const category = document.getElementById('filter-category');
+  const frameSize = document.getElementById('filter-frame-size');
+  const material = document.getElementById('filter-material');
+  const cards = Array.from(document.querySelectorAll('.model-card'));
+  const noResults = document.getElementById('no-results');
+
+  function applyFilters() {
+    const searchVal = search.value.trim().toLowerCase();
+    const catVal = category.value;
+    const sizeVal = frameSize.value;
+    const matVal = material.value;
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const matchesSearch = !searchVal ||
+        card.dataset.title.includes(searchVal) ||
+        card.dataset.description.includes(searchVal);
+      const matchesCategory = !catVal || card.dataset.category === catVal;
+      const matchesSize = !sizeVal || card.dataset.frameSize.split(',').includes(sizeVal);
+      const matchesMaterial = !matVal || card.dataset.material.split(',').includes(matVal);
+
+      const visible = matchesSearch && matchesCategory && matchesSize && matchesMaterial;
+      card.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+
+    noResults.classList.toggle('hidden', visibleCount > 0);
+  }
+
+  [search, category, frameSize, material].forEach(el => {
+    el.addEventListener('input', applyFilters);
+  });
+})();
+</script>
+{{ end }}
+

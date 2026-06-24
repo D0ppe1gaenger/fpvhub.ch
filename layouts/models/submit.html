@@ -1,0 +1,451 @@
+{{/*
+  layouts/models/submit.html
+  Eigenes Layout für die Modell-Einreichungsseite (content/models/submit.md).
+  Folgt dem bestehenden Design-System (page-hero, eyebrow, Karten-Look
+  für Form-Sections statt nackter HTML-Defaults).
+  Front Matter in submit.md bleibt minimal (title, url, layout-Referenz).
+*/}}
+
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 3rem 0 2rem; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .eyebrow::after { content:''; flex:1; height:1px; background:var(--bdr); }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4.5vw, 3rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.01em; margin-bottom: 1rem; -webkit-text-stroke: 0; }
+  h1 span { color: var(--g); }
+  .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 56ch; }
+
+  .submit-form-wrapper { padding-bottom: 4rem; }
+
+  .form-group {
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    border-radius: 1rem;
+    padding: 0.5rem 2rem 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .form-group-section {
+    padding: 1.75rem 0;
+    border-top: 1px solid var(--bdr);
+  }
+  .form-group-section:first-child { border-top: none; }
+  .form-group-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--g);
+    letter-spacing: 0.02em;
+    margin-bottom: 1.25rem;
+    -webkit-text-stroke: 0;
+  }
+
+  .form-section { margin-bottom: 1.4rem; }
+  .form-section:last-child { margin-bottom: 0; }
+  .form-section label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: 0.5rem;
+  }
+  .form-section input[type="text"],
+  .form-section input[type="number"],
+  .form-section select,
+  .form-section textarea {
+    width: 100%;
+    background: var(--n2);
+    border: 1px solid var(--bdr);
+    color: var(--fg);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.6rem;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+  .form-section input[type="text"]:focus,
+  .form-section input[type="number"]:focus,
+  .form-section select:focus,
+  .form-section textarea:focus { outline: none; border-color: var(--bdrh); }
+  .form-section input::placeholder,
+  .form-section textarea::placeholder { color: var(--fd); }
+  .form-section textarea { resize: vertical; min-height: 90px; }
+
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .checkbox-group label,
+  .form-section > label.checkbox-label {
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: var(--fm);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--n2);
+    border: 1px solid var(--bdr);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .checkbox-group label:hover,
+  .form-section > label.checkbox-label:hover { border-color: var(--bdrh); color: var(--fg); }
+  .checkbox-group input[type="checkbox"],
+  .form-section > label.checkbox-label input[type="checkbox"] { accent-color: var(--g); width: 16px; height: 16px; flex-shrink: 0; }
+
+  .hint { font-size: 0.78rem; color: var(--fd); font-weight: 300; margin-top: 0.4rem; }
+
+  .radio-group { display: flex; flex-direction: column; gap: 0.6rem; }
+  .radio-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: var(--n2);
+    border: 1px solid var(--bdr);
+    border-radius: 0.6rem;
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .radio-card:hover { border-color: var(--bdrh); }
+  .radio-card input[type="radio"] {
+    accent-color: var(--g);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+  .radio-card input[type="radio"]:checked ~ .radio-card-text .radio-card-title { color: var(--g); }
+  .radio-card:has(input:checked) { border-color: var(--bdrh); background: rgba(245,197,24,0.05); }
+  .radio-card-text { display: flex; flex-direction: column; gap: 0.15rem; }
+  .radio-card-title { font-size: 0.85rem; font-weight: 600; color: var(--fg); }
+  .radio-card-desc { font-size: 0.78rem; color: var(--fm); font-weight: 300; line-height: 1.5; }
+
+  .file-input-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+
+  input[type="file"] {
+    color: var(--fm);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+  }
+  input[type="file"]::file-selector-button {
+    background: var(--n0);
+    border: 1px solid var(--bdrh);
+    color: var(--g);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin-right: 0.75rem;
+    transition: background 0.15s;
+  }
+  input[type="file"]::file-selector-button:hover { background: var(--n1); }
+
+  .rights-section {
+    background: rgba(245,197,24,0.04);
+    border: 1px dashed var(--bdrh);
+    border-radius: 0.75rem;
+    padding: 1.1rem 1.25rem;
+  }
+  .rights-section label.checkbox-label {
+    background: none;
+    border: none;
+    padding: 0;
+    align-items: flex-start;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--fm);
+  }
+
+  #submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--n3);
+    background: var(--g);
+    border: none;
+    padding: 0.85rem 2rem;
+    border-radius: 0.6rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  #submit-btn:hover { background: var(--o); transform: translateY(-1px); }
+  #submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  #form-status { margin-top: 1rem; font-size: 0.85rem; font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .form-group { padding: 1.4rem 1.25rem; }
+  }
+</style>
+{{ end }}
+
+{{ define "main" }}
+<div class="page-hero">
+  <div class="eyebrow">FPV-Teile</div>
+  <h1>Modell <span>einreichen</span></h1>
+  <p class="page-sub">Teile dein 3D-druckbares FPV-Teil mit der Community. Nach dem Einreichen prüft unser Team kurz Inhalt und Rechte, danach geht es online.</p>
+  <p class="page-sub" style="margin-top: 0.75rem;">Möchtest du später etwas an deiner Einreichung ändern? Melde dich einfach im Discord im #support. Wir helfen dir gerne weiter.</p>
+</div>
+
+<div class="submit-form-wrapper">
+  <form id="model-submit-form">
+
+    <div class="form-group">
+
+      <div class="form-group-section">
+        <div class="form-group-title">Grunddaten</div>
+
+        <div class="form-section">
+          <label for="title">Titel *</label>
+          <input type="text" id="title" name="title" required
+                 placeholder="z.B. RunCam Nano 3 Mount – 20mm">
+        </div>
+
+        <div class="form-section">
+          <label for="discord_id">Deine Discord User-ID *</label>
+          <input type="text" id="discord_id" name="discord_id" required
+                 pattern="[0-9]{17,19}"
+                 placeholder="z.B. 123456789012345678">
+          <p class="hint">
+            Rechtsklick auf deinen Namen in Discord → "ID kopieren". Falls nicht sichtbar:
+            Discord-Einstellungen → Erweitert → Entwicklermodus aktivieren.
+          </p>
+        </div>
+
+        <div class="form-section">
+          <label for="display_name">Anzeigename *</label>
+          <input type="text" id="display_name" name="display_name" required
+                 placeholder="Dein Discord-Name">
+        </div>
+      </div>
+
+      <div class="form-group-section">
+        <div class="form-group-title">Kategorie & Kompatibilität</div>
+
+        <div class="form-section">
+          <label for="category">Kategorie *</label>
+          <select id="category" name="category" required>
+            <option value="">– wählen –</option>
+            <option value="camera-mount">Kamera-Mount</option>
+            <option value="antenna-mount">Antennen-Mount</option>
+            <option value="frame-part">Frame-Teil</option>
+            <option value="canopy">Canopy</option>
+            <option value="battery-strap">Akku-Halterung</option>
+            <option value="spare-part">Ersatzteil</option>
+            <option value="tool">Werkzeug</option>
+            <option value="other">Sonstiges</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <label>Frame-Grösse *</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" name="frame_size" value="3in"> 3"</label>
+            <label><input type="checkbox" name="frame_size" value="5in"> 5"</label>
+            <label><input type="checkbox" name="frame_size" value="7in"> 7"</label>
+            <label><input type="checkbox" name="frame_size" value="10in"> 10"</label>
+            <label><input type="checkbox" name="frame_size" value="other"> Andere/Universal</label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label for="mount_pattern">Mount-Pattern</label>
+          <select id="mount_pattern" name="mount_pattern">
+            <option value="n-a">– nicht zutreffend –</option>
+            <option value="16x16">16x16</option>
+            <option value="19x19">19x19</option>
+            <option value="20x20">20x20</option>
+            <option value="25.5x25.5">25.5x25.5</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <label>Empfohlenes Material *</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" name="material" value="TPU"> TPU</label>
+            <label><input type="checkbox" name="material" value="PETG"> PETG</label>
+            <label><input type="checkbox" name="material" value="ABS"> ABS</label>
+            <label><input type="checkbox" name="material" value="PLA"> PLA</label>
+            <label><input type="checkbox" name="material" value="PC"> PC</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group-section">
+        <div class="form-group-title">Lizenz & Beschreibung</div>
+
+        <div class="form-section">
+          <label>Lizenz *</label>
+          <div class="radio-group">
+            <label class="radio-card">
+              <input type="radio" name="license" value="CC0-1.0" required>
+              <span class="radio-card-text">
+                <span class="radio-card-title">Frei nutzbar</span>
+                <span class="radio-card-desc">Jede:r darf es verwenden, ändern und weitergeben – auch kommerziell.</span>
+              </span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="license" value="CC-BY-NC-4.0">
+              <span class="radio-card-text">
+                <span class="radio-card-title">Nur privat</span>
+                <span class="radio-card-desc">Nutzung und Ändern erlaubt, aber nicht zum Verkaufen oder für Geschäfte.</span>
+              </span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="license" value="CC-BY-NC-ND-4.0">
+              <span class="radio-card-text">
+                <span class="radio-card-title">Nur mit meiner Erlaubnis</span>
+                <span class="radio-card-desc">Andere dürfen es nur unverändert nachdrucken, nicht selbst anpassen oder verkaufen.</span>
+              </span>
+            </label>
+          </div>
+          <p class="hint">Unsicher? "Frei nutzbar" ist die einfachste Wahl für die Community.</p>
+        </div>
+
+        <div class="form-section">
+          <label for="description">Beschreibung *</label>
+          <textarea id="description" name="description" required rows="4"
+                    placeholder="Was ist es, wofür ist es, auf welchem Frame getestet?"></textarea>
+        </div>
+      </div>
+
+      <div class="form-group-section">
+        <div class="form-group-title">Druckeinstellungen</div>
+
+        <div class="form-section">
+          <label for="layer_height">Layer Height (mm)</label>
+          <input type="number" id="layer_height" name="layer_height" step="0.04" value="0.2">
+        </div>
+
+        <div class="form-section">
+          <label for="infill">Infill (%)</label>
+          <input type="number" id="infill" name="infill" value="20" min="0" max="100">
+        </div>
+
+        <div class="form-section">
+          <label class="checkbox-label"><input type="checkbox" id="supports" name="supports"> Supports nötig</label>
+        </div>
+      </div>
+
+      <div class="form-group-section">
+        <div class="form-group-title">Dateien</div>
+
+        <div class="form-section">
+          <label for="model_file">Datei (.stl oder .3mf) *</label>
+          <div class="file-input-row">
+            <input type="file" id="model_file" name="model_file" accept=".stl,.3mf" required>
+          </div>
+          <p class="hint">Max. 50 MB.</p>
+        </div>
+
+        <div class="form-section">
+          <label for="thumbnail">Vorschaubild (optional, .png/.jpg)</label>
+          <div class="file-input-row">
+            <input type="file" id="thumbnail" name="thumbnail" accept=".png,.jpg,.jpeg">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="form-group rights-section">
+      <label class="checkbox-label">
+        <input type="checkbox" id="rights_confirm" name="rights_confirm" required>
+        Ich bestätige, dass ich die Rechte an diesem Modell habe oder zur Weitergabe
+        unter der gewählten Lizenz berechtigt bin. *
+      </label>
+    </div>
+
+    <button type="submit" id="submit-btn">Zur Prüfung einreichen →</button>
+    <p id="form-status"></p>
+
+  </form>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+document.getElementById('model-submit-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const statusEl = document.getElementById('form-status');
+  const submitBtn = document.getElementById('submit-btn');
+  const form = e.target;
+
+  const frameSizes = form.querySelectorAll('input[name="frame_size"]:checked');
+  const materials = form.querySelectorAll('input[name="material"]:checked');
+
+  if (frameSizes.length === 0) {
+    statusEl.textContent = 'Bitte mindestens eine Frame-Grösse wählen.';
+    statusEl.style.color = '#e74c3c';
+    return;
+  }
+  if (materials.length === 0) {
+    statusEl.textContent = 'Bitte mindestens ein Material wählen.';
+    statusEl.style.color = '#e74c3c';
+    return;
+  }
+
+  const modelFile = document.getElementById('model_file').files[0];
+
+  if (modelFile && modelFile.size > 50 * 1024 * 1024) {
+    statusEl.textContent = 'Datei ist grösser als 50 MB.';
+    statusEl.style.color = '#e74c3c';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  statusEl.textContent = 'Wird hochgeladen …';
+  statusEl.style.color = '';
+
+  const formData = new FormData();
+  formData.append('title', form.title.value);
+  formData.append('discord_id', form.discord_id.value);
+  formData.append('display_name', form.display_name.value);
+  formData.append('category', form.category.value);
+  frameSizes.forEach(cb => formData.append('frame_size', cb.value));
+  formData.append('mount_pattern', form.mount_pattern.value);
+  materials.forEach(cb => formData.append('material', cb.value));
+  formData.append('license', form.license.value);
+  formData.append('description', form.description.value);
+  formData.append('layer_height', form.layer_height.value);
+  formData.append('infill', form.infill.value);
+  formData.append('supports', form.supports.checked ? 'true' : 'false');
+  formData.append('rights_confirm', form.rights_confirm.checked ? 'true' : 'false');
+  formData.append('model_file', modelFile);
+
+  const thumbFile = document.getElementById('thumbnail').files[0];
+  if (thumbFile) {
+    formData.append('thumbnail', thumbFile);
+  }
+
+  try {
+    const response = await fetch('https://fpvhub-bot-production.up.railway.app/api/models/submit', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      statusEl.textContent = 'Danke! Dein Modell wird vom Team geprüft (PR #' + result.pr_number + ').';
+      statusEl.style.color = '#23d18b';
+      form.reset();
+    } else {
+      statusEl.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
+      statusEl.style.color = '#e74c3c';
+    }
+  } catch (err) {
+    statusEl.textContent = 'Verbindung zum Server fehlgeschlagen. Bitte später erneut versuchen.';
+    statusEl.style.color = '#e74c3c';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+{{ end }}
