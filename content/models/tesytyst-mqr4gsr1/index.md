@@ -25,7 +25,7 @@ files:
 status: approved
 download_count: 0
 thumbnail: ''
-draft: true
+draft: false
 ---
 
 sfesefsefsefsf
