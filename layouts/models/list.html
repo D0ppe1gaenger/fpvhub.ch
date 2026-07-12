@@ -27,6 +27,11 @@
     flex-wrap: wrap;
     gap: 0.75rem;
     padding: 0 0 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .models-filters input[type="text"] {
+    grid-column: 1 / -1;
   }
   .models-filters input,
   .models-filters select {
@@ -35,14 +40,32 @@
     color: var(--fg);
     font-family: 'Space Grotesk', sans-serif;
     font-size: 0.85rem;
-    padding: 0.65rem 0.9rem;
+    padding: 0.55rem 0.75rem;
     border-radius: 0.6rem;
-    flex: 1 1 180px;
+    width: 100%;
+    box-sizing: border-box;
     transition: border-color 0.15s;
+    height: 2.6rem;
   }
   .models-filters input::placeholder { color: var(--fd); }
   .models-filters input:focus,
   .models-filters select:focus { outline: none; border-color: var(--bdrh); }
+
+  @media (min-width: 640px) {
+    .models-filters {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .models-filters input,
+    .models-filters select {
+      flex: 1 1 180px;
+      width: auto;
+      height: auto;
+    }
+    .models-filters input[type="text"] {
+      grid-column: auto;
+    }
+  }
 
   .models-grid {
     display: grid;
