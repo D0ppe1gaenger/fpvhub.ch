@@ -21,7 +21,7 @@ files:
 status: pending
 download_count: 0
 thumbnail: ''
-draft: turue
+draft: true
 ---
 
 test test ea fzaebfaefae
