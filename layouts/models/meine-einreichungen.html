@@ -36,6 +36,8 @@
   .my-model-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
   .btn-edit { font-size: 0.8rem; font-weight: 600; color: var(--g); background: rgba(245,197,24,0.1); border: 1px solid rgba(245,197,24,0.3); padding: 0.45rem 0.9rem; border-radius: 0.4rem; text-decoration: none; cursor: pointer; }
   .btn-view { font-size: 0.8rem; color: var(--fm); border: 1px solid var(--bdr); padding: 0.45rem 0.9rem; border-radius: 0.4rem; text-decoration: none; }
+  .btn-delete { font-size: 0.8rem; color: #e74c3c; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.3); padding: 0.45rem 0.9rem; border-radius: 0.4rem; cursor: pointer; }
+  .btn-delete:hover { background: rgba(231,76,60,0.15); }
   .empty-state { text-align: center; padding: 3rem 1rem; color: var(--fm); }
   .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--n3); background: var(--g); padding: 0.75rem 1.6rem; border-radius: 0.5rem; text-decoration: none; }
   .loading { text-align: center; padding: 2rem; color: var(--fd); }
@@ -144,6 +146,7 @@ async function init() {
     data.models.forEach(m => {
       const card = document.createElement('div');
       card.className = 'my-model-card';
+      card.setAttribute('data-model-id', m.id);
       const date = new Date(m.created_at).toLocaleDateString('de-CH');
       card.innerHTML = `
         <div class="my-model-thumb">
@@ -159,12 +162,39 @@ async function init() {
           ${m.status === 'approved' ? `<a href="/models/${m.id}/" class="btn-view">Ansehen</a>` :
             m.pr_url ? `<a href="${m.pr_url}" target="_blank" rel="noopener" class="btn-view">PR</a>` : ''}
           <a href="/models/submit/?edit=${m.id}" class="btn-edit">Bearbeiten</a>
+          <button class="btn-delete" onclick="deleteModel('${m.id}', '${m.title.replace(/'/g, "\\'")}')">Löschen</button>
         </div>
       `;
       list.appendChild(card);
     });
   } catch {
     document.getElementById('loading').textContent = 'Fehler beim Laden.';
+  }
+}
+
+async function deleteModel(id, title) {
+  if (!confirm(`Möchtest du "${title}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+
+  try {
+    const res = await fetch(`${BOT}/api/models/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      // Karte aus DOM entfernen
+      document.querySelector(`[data-model-id="${id}"]`)?.remove();
+      // Falls keine Modelle mehr: Empty-State zeigen
+      const remaining = document.querySelectorAll('.my-model-card');
+      if (!remaining.length) {
+        document.getElementById('models-list').style.display = 'none';
+        document.getElementById('empty').style.display = '';
+      }
+    } else {
+      alert('Fehler beim Löschen: ' + (data.error || 'Unbekannter Fehler'));
+    }
+  } catch {
+    alert('Verbindungsfehler. Bitte später erneut versuchen.');
   }
 }
 
