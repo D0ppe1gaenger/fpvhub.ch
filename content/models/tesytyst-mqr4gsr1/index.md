@@ -22,10 +22,10 @@ files:
       layer_height: 0.2
       infill: 20
       supports: false
-status: approved
+status: pending
 download_count: 0
 thumbnail: ''
-draft: false
+draft: true
 ---
 
 sfesefsefsefsf
