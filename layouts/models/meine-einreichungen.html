@@ -159,8 +159,7 @@ async function init() {
           </div>
         </div>
         <div class="my-model-actions">
-          ${m.status === 'approved' ? `<a href="/models/${m.id}/" class="btn-view">Ansehen</a>` :
-            m.pr_url ? `<a href="${m.pr_url}" target="_blank" rel="noopener" class="btn-view">PR</a>` : ''}
+          ${m.status === 'approved' ? `<a href="/models/${m.id}/" class="btn-view">Ansehen</a>` : ''}
           <a href="/models/submit/?edit=${m.id}" class="btn-edit">Bearbeiten</a>
           <button class="btn-delete" onclick="deleteModel('${m.id}', '${m.title.replace(/'/g, "\\'")}')">Löschen</button>
         </div>
