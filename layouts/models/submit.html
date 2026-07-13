@@ -375,15 +375,17 @@
 const BOT = 'https://fpvhub-bot-production.up.railway.app';
 const TOKEN_KEY = 'fpvhub_auth_token';
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
+function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+
+// Edit-Modus: ?edit=<model-id> in der URL
+const editId = new URLSearchParams(window.location.search).get('edit');
+let isEditMode = !!editId;
 
 async function checkAuth() {
   const token = getToken();
-  if (!token) {
-    document.getElementById('login-required').style.display = '';
-    return;
-  }
+  if (!token) { document.getElementById('login-required').style.display = ''; return; }
   try {
-    const res = await fetch(`${BOT}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${BOT}/auth/me`, { headers: authHeaders() });
     const data = await res.json();
     if (!data.loggedIn) {
       localStorage.removeItem(TOKEN_KEY);
@@ -396,8 +398,64 @@ async function checkAuth() {
     if (data.user.avatar_url) document.getElementById('user-avatar').src = data.user.avatar_url;
     document.getElementById('submit-form-container').style.display = '';
     window._discordUser = data.user;
+
+    // Edit-Modus: Formular prefüllen
+    if (isEditMode) {
+      await prefillForm(editId);
+    }
   } catch {
     document.getElementById('login-required').style.display = '';
+  }
+}
+
+async function prefillForm(modelId) {
+  try {
+    const res = await fetch(`${BOT}/api/models/${modelId}`, { headers: authHeaders() });
+    if (!res.ok) { console.error('Modell nicht gefunden'); return; }
+    const { model } = await res.json();
+
+    // Titel, Beschreibung, Layer Height, Infill
+    document.getElementById('title').value = model.title || '';
+    document.getElementById('description').value = model.description || '';
+    document.getElementById('layer_height').value = model.layer_height || 0.2;
+    document.getElementById('infill').value = model.infill || 20;
+    document.getElementById('supports').checked = model.supports || false;
+
+    // Kategorie
+    const catSelect = document.getElementById('category');
+    if (catSelect) catSelect.value = model.category || '';
+
+    // Mount-Pattern
+    const mountSelect = document.getElementById('mount_pattern');
+    if (mountSelect) mountSelect.value = model.mount_pattern || 'n-a';
+
+    // Frame-Grösse (Checkboxen)
+    const frameSizes = model.frame_size || [];
+    document.querySelectorAll('input[name="frame_size"]').forEach(cb => {
+      cb.checked = frameSizes.includes(cb.value);
+    });
+
+    // Material (Checkboxen)
+    const materials = model.material || [];
+    document.querySelectorAll('input[name="material"]').forEach(cb => {
+      cb.checked = materials.includes(cb.value);
+    });
+
+    // Lizenz (Radio-Buttons)
+    const licenseRadios = document.querySelectorAll('input[name="license"]');
+    licenseRadios.forEach(r => { r.checked = r.value === model.license; });
+
+    // UI anpassen: Titel und Button-Text ändern
+    document.querySelector('.page-hero h1').innerHTML = 'Modell <span>bearbeiten</span>';
+    document.getElementById('submit-btn').textContent = 'Änderungen einreichen →';
+
+    // Hinweis anzeigen
+    const statusEl = document.getElementById('form-status');
+    statusEl.textContent = 'Bearbeitungs-Modus: Bestehende Daten wurden geladen.';
+    statusEl.style.color = 'var(--g)';
+
+  } catch (err) {
+    console.error('Prefill-Fehler:', err);
   }
 }
 
@@ -415,10 +473,11 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   if (!materials.length) { statusEl.textContent = 'Bitte mindestens ein Material wählen.'; statusEl.style.color = '#e74c3c'; return; }
 
   const modelFile = document.getElementById('model_file').files[0];
+  if (!isEditMode && !modelFile) { statusEl.textContent = 'Bitte eine Datei hochladen.'; statusEl.style.color = '#e74c3c'; return; }
   if (modelFile && modelFile.size > 50 * 1024 * 1024) { statusEl.textContent = 'Datei ist grösser als 50 MB.'; statusEl.style.color = '#e74c3c'; return; }
 
   submitBtn.disabled = true;
-  statusEl.textContent = 'Wird hochgeladen …';
+  statusEl.textContent = isEditMode ? 'Änderungen werden eingereicht …' : 'Wird hochgeladen …';
   statusEl.style.color = '';
 
   const formData = new FormData();
@@ -433,21 +492,23 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   formData.append('infill', form.infill.value);
   formData.append('supports', form.supports.checked ? 'true' : 'false');
   formData.append('rights_confirm', form.rights_confirm.checked ? 'true' : 'false');
-  formData.append('model_file', modelFile);
+  if (modelFile) formData.append('model_file', modelFile);
   const thumbFile = document.getElementById('thumbnail').files[0];
   if (thumbFile) formData.append('thumbnail', thumbFile);
 
+  // Edit-Modus: PUT statt POST
+  const url = isEditMode ? `${BOT}/api/models/${editId}` : `${BOT}/api/models/submit`;
+  const method = isEditMode ? 'PUT' : 'POST';
+
   try {
-    const response = await fetch(`${BOT}/api/models/submit`, {
-      method: 'POST',
-      body: formData,
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-    });
+    const response = await fetch(url, { method, body: formData, headers: authHeaders() });
     const result = await response.json();
     if (response.ok) {
-      statusEl.textContent = 'Danke! Dein Modell wird vom Team geprüft (PR #' + result.pr_number + ').';
+      statusEl.textContent = isEditMode
+        ? 'Änderungen eingereicht! Das Team prüft sie kurz (PR #' + result.pr_number + ').'
+        : 'Danke! Dein Modell wird vom Team geprüft (PR #' + result.pr_number + ').';
       statusEl.style.color = '#23d18b';
-      form.reset();
+      if (!isEditMode) form.reset();
     } else {
       statusEl.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
       statusEl.style.color = '#e74c3c';
