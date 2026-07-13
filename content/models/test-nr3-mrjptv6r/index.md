@@ -23,7 +23,7 @@ files:
       infill: 20
       supports: true
 status: approved
-download_count: 1
+download_count: 2
 thumbnail: ''
 draft: false
 ---
