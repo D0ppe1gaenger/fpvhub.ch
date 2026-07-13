@@ -188,7 +188,7 @@
 <div class="page-hero">
   <div class="eyebrow">FPV-Teile</div>
   <h1>Modell <span>einreichen</span></h1>
-  <p class="page-sub">Teile deine 3D FPV-Parts mit der Community. Nach dem Einreichen prüft unser Team kurz den Inhalt, danach geht es online.</p>
+  <p class="page-sub">Teile deine 3D FPV-Parts mit der Community. Nach dem Einreichen prüft unser Team kurz die Inhalte, danach geht es online.</p>
 </div>
 
 {{/* Login-Box (wird via JS ein-/ausgeblendet) */}}
@@ -337,14 +337,20 @@
 
         <div class="form-section">
           <label for="model_file">Datei (.stl oder .3mf) *</label>
+          <div id="current-model-file" class="hint" style="display:none; margin-bottom:0.5rem;">
+            📎 Aktuelle Datei: <span id="current-model-filename" style="color:var(--g); font-weight:600;"></span> – nur hochladen wenn du sie ersetzen möchtest
+          </div>
           <div class="file-input-row">
-            <input type="file" id="model_file" name="model_file" accept=".stl,.3mf" required>
+            <input type="file" id="model_file" name="model_file" accept=".stl,.3mf">
           </div>
           <p class="hint">Max. 50 MB.</p>
         </div>
 
         <div class="form-section">
           <label for="thumbnail">Vorschaubild (optional, .png/.jpg)</label>
+          <div id="current-thumb-file" class="hint" style="display:none; margin-bottom:0.5rem;">
+            🖼️ Aktuelles Bild: <span id="current-thumb-filename" style="color:var(--g); font-weight:600;"></span>
+          </div>
           <div class="file-input-row">
             <input type="file" id="thumbnail" name="thumbnail" accept=".png,.jpg,.jpeg">
           </div>
@@ -443,6 +449,16 @@ async function prefillForm(modelId) {
     // Lizenz (Radio-Buttons)
     const licenseRadios = document.querySelectorAll('input[name="license"]');
     licenseRadios.forEach(r => { r.checked = r.value === model.license; });
+
+    // Aktuelle Dateien anzeigen
+    if (model.model_filename) {
+      document.getElementById('current-model-file').style.display = '';
+      document.getElementById('current-model-filename').textContent = model.model_filename;
+    }
+    if (model.thumb_filename) {
+      document.getElementById('current-thumb-file').style.display = '';
+      document.getElementById('current-thumb-filename').textContent = model.thumb_filename;
+    }
 
     // UI anpassen: Titel und Button-Text ändern
     document.querySelector('.page-hero h1').innerHTML = 'Modell <span>bearbeiten</span>';
