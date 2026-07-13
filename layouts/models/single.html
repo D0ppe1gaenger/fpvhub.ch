@@ -151,13 +151,14 @@
     <li><b>Infill:</b> {{ .print_settings.infill }} %</li>
     <li><b>Supports:</b> {{ if .print_settings.supports }}Ja{{ else }}Nein{{ end }}</li>
   </ul>
-  <a href="{{ $.RelPermalink }}{{ .filename }}" class="btn-primary" download>
+  <a href="{{ $.RelPermalink }}{{ .filename }}" class="btn-primary" download
+     onclick="trackDownload('{{ $.Params.id }}', this)">
     {{ .filename }} herunterladen
   </a>
 </div>
 {{ end }}
 
-<p class="download-count">{{ .Params.download_count }} Downloads</p>
+<p class="download-count" id="download-count">{{ .Params.download_count }} {{ if eq .Params.download_count 1 }}Download{{ else }}Downloads{{ end }}</p>
 
 <details class="report-block">
   <summary>Problem mit diesem Modell melden</summary>
@@ -170,6 +171,19 @@
 {{ end }}
 
 {{ define "scripts" }}
+<script>
+function trackDownload(modelId, link) {
+  fetch('https://fpvhub-bot-production.up.railway.app/api/models/' + modelId + '/download', {
+    method: 'POST',
+  }).then(r => r.json()).then(data => {
+    if (data.download_count !== undefined) {
+      const el = document.getElementById('download-count');
+      if (el) el.textContent = data.download_count + ' Download' + (data.download_count !== 1 ? 's' : '');
+    }
+  }).catch(() => {}); // Fehler still ignorieren, Download trotzdem starten
+}
+</script>
+
 <script type="importmap">
 {
   "imports": {
