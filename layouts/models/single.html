@@ -84,9 +84,30 @@
 {{ if eq $license "CC-BY-NC-4.0" }}{{ $licenseLabel = "Nur privat" }}{{ end }}
 {{ if eq $license "CC-BY-NC-ND-4.0" }}{{ $licenseLabel = "Nur mit Erlaubnis des Autors" }}{{ end }}
 
+{{ $category := .Params.category }}
+{{ $categoryLabel := $category }}
+{{ if eq $category "camera-mount" }}{{ $categoryLabel = "Kamera-Mount" }}{{ end }}
+{{ if eq $category "antenna-mount" }}{{ $categoryLabel = "Antennen-Mount" }}{{ end }}
+{{ if eq $category "frame-part" }}{{ $categoryLabel = "Frame-Teil" }}{{ end }}
+{{ if eq $category "canopy" }}{{ $categoryLabel = "Canopy" }}{{ end }}
+{{ if eq $category "battery-strap" }}{{ $categoryLabel = "Akku-Halterung" }}{{ end }}
+{{ if eq $category "spare-part" }}{{ $categoryLabel = "Ersatzteil" }}{{ end }}
+{{ if eq $category "tool" }}{{ $categoryLabel = "Werkzeug" }}{{ end }}
+{{ if eq $category "other" }}{{ $categoryLabel = "Sonstiges" }}{{ end }}
+
+{{ $mount := .Params.mount_pattern }}
+{{ $mountLabel := $mount }}
+{{ if eq $mount "n-a" }}{{ $mountLabel = "Nicht zutreffend" }}{{ end }}
+
+{{ $frameSizes := slice }}
+{{ range .Params.frame_size }}
+  {{ if eq . "other" }}{{ $frameSizes = $frameSizes | append "Andere/Universal" }}
+  {{ else }}{{ $frameSizes = $frameSizes | append . }}{{ end }}
+{{ end }}
+
 <div class="page-hero">
   <a href="/models/" class="back-link">← Zurück zur Übersicht</a>
-  <div class="eyebrow">{{ .Params.category }}</div>
+  <div class="eyebrow">{{ $categoryLabel }}</div>
   <h1>{{ .Params.title }}</h1>
   <p class="model-meta-line">
     von <b>{{ .Params.author.display_name }}</b> · eingereicht am {{ .Date.Format "02.01.2006" }} · Lizenz: {{ $licenseLabel }}
@@ -100,16 +121,18 @@
 <div class="model-meta-grid">
   <div>
     <strong>Kategorie</strong>
-    <span>{{ .Params.category }}</span>
+    <span>{{ $categoryLabel }}</span>
   </div>
   <div>
     <strong>Frame-Grösse</strong>
-    <span>{{ delimit .Params.frame_size ", " }}</span>
+    <span>{{ delimit $frameSizes ", " }}</span>
   </div>
+  {{ if ne $mountLabel "Nicht zutreffend" }}
   <div>
     <strong>Mount-Pattern</strong>
-    <span>{{ .Params.mount_pattern }}</span>
+    <span>{{ $mountLabel }}</span>
   </div>
+  {{ end }}
   <div>
     <strong>Material</strong>
     <span>{{ delimit .Params.material_recommendation ", " }}</span>
