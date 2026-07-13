@@ -22,10 +22,10 @@ files:
       layer_height: 0.2
       infill: 20
       supports: true
-status: approved
+status: pending
 download_count: 0
 thumbnail: ''
-draft: false
+draft: true
 ---
 
-Test jetzt endlich???
+Test nach bearbeitung
