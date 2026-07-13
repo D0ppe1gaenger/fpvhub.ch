@@ -189,6 +189,7 @@
   <div class="eyebrow">FPV-Teile</div>
   <h1>Modell <span>einreichen</span></h1>
   <p class="page-sub">Teile dein 3D-druckbares FPV-Teil mit der Community. Nach dem Einreichen prüft unser Team kurz Inhalt und Rechte, danach geht es online.</p>
+  <p class="page-sub" style="margin-top: 0.75rem;">Möchtest du später etwas an deiner Einreichung ändern? Melde dich einfach im Discord im #mod-support Channel – wir helfen dir gerne weiter.</p>
 </div>
 
 {{/* Login-Box (wird via JS ein-/ausgeblendet) */}}
@@ -371,35 +372,31 @@
 
 {{ define "scripts" }}
 <script>
-const BOT_URL = 'https://fpvhub-bot-production.up.railway.app';
+const BOT = 'https://fpvhub-bot-production.up.railway.app';
+const TOKEN_KEY = 'fpvhub_auth_token';
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
 
-// Login-Check beim Laden der Seite
 async function checkAuth() {
+  const token = getToken();
+  if (!token) {
+    document.getElementById('login-required').style.display = '';
+    return;
+  }
   try {
-    const res = await fetch(`${BOT_URL}/auth/me`, { credentials: 'include' });
+    const res = await fetch(`${BOT}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
     const data = await res.json();
-
     if (!data.loggedIn) {
+      localStorage.removeItem(TOKEN_KEY);
       document.getElementById('login-required').style.display = '';
       return;
     }
-
-    // User-Info anzeigen
     const userInfo = document.getElementById('user-info');
     userInfo.style.display = 'flex';
     document.getElementById('user-name').textContent = data.user.display_name;
-    if (data.user.avatar_url) {
-      document.getElementById('user-avatar').src = data.user.avatar_url;
-    }
-
-    // Formular anzeigen
+    if (data.user.avatar_url) document.getElementById('user-avatar').src = data.user.avatar_url;
     document.getElementById('submit-form-container').style.display = '';
-
-    // User-Daten im Formular speichern (hidden, für Submit)
     window._discordUser = data.user;
-
-  } catch (err) {
-    // Bei Fehler: Login anzeigen
+  } catch {
     document.getElementById('login-required').style.display = '';
   }
 }
@@ -408,31 +405,17 @@ checkAuth();
 
 document.getElementById('model-submit-form').addEventListener('submit', async function (e) {
   e.preventDefault();
-
   const statusEl = document.getElementById('form-status');
   const submitBtn = document.getElementById('submit-btn');
   const form = e.target;
-
   const frameSizes = form.querySelectorAll('input[name="frame_size"]:checked');
   const materials = form.querySelectorAll('input[name="material"]:checked');
 
-  if (frameSizes.length === 0) {
-    statusEl.textContent = 'Bitte mindestens eine Frame-Grösse wählen.';
-    statusEl.style.color = '#e74c3c';
-    return;
-  }
-  if (materials.length === 0) {
-    statusEl.textContent = 'Bitte mindestens ein Material wählen.';
-    statusEl.style.color = '#e74c3c';
-    return;
-  }
+  if (!frameSizes.length) { statusEl.textContent = 'Bitte mindestens eine Frame-Grösse wählen.'; statusEl.style.color = '#e74c3c'; return; }
+  if (!materials.length) { statusEl.textContent = 'Bitte mindestens ein Material wählen.'; statusEl.style.color = '#e74c3c'; return; }
 
   const modelFile = document.getElementById('model_file').files[0];
-  if (modelFile && modelFile.size > 50 * 1024 * 1024) {
-    statusEl.textContent = 'Datei ist grösser als 50 MB.';
-    statusEl.style.color = '#e74c3c';
-    return;
-  }
+  if (modelFile && modelFile.size > 50 * 1024 * 1024) { statusEl.textContent = 'Datei ist grösser als 50 MB.'; statusEl.style.color = '#e74c3c'; return; }
 
   submitBtn.disabled = true;
   statusEl.textContent = 'Wird hochgeladen …';
@@ -451,19 +434,16 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   formData.append('supports', form.supports.checked ? 'true' : 'false');
   formData.append('rights_confirm', form.rights_confirm.checked ? 'true' : 'false');
   formData.append('model_file', modelFile);
-
   const thumbFile = document.getElementById('thumbnail').files[0];
   if (thumbFile) formData.append('thumbnail', thumbFile);
 
   try {
-    const response = await fetch(`${BOT_URL}/api/models/submit`, {
+    const response = await fetch(`${BOT}/api/models/submit`, {
       method: 'POST',
       body: formData,
-      credentials: 'include',
+      headers: { 'Authorization': `Bearer ${getToken()}` },
     });
-
     const result = await response.json();
-
     if (response.ok) {
       statusEl.textContent = 'Danke! Dein Modell wird vom Team geprüft (PR #' + result.pr_number + ').';
       statusEl.style.color = '#23d18b';
@@ -472,8 +452,8 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
       statusEl.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
       statusEl.style.color = '#e74c3c';
     }
-  } catch (err) {
-    statusEl.textContent = 'Verbindung zum Server fehlgeschlagen. Bitte später erneut versuchen.';
+  } catch {
+    statusEl.textContent = 'Verbindung fehlgeschlagen. Bitte später erneut versuchen.';
     statusEl.style.color = '#e74c3c';
   } finally {
     submitBtn.disabled = false;
