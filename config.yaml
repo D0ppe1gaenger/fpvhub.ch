@@ -8,10 +8,12 @@ mediaTypes:
   model/3mf:
     suffixes: ["3mf"]
 
-outputFormats:
-  stl:
-    mediaType: model/stl
-    isPlainText: true
-  3mf:
-    mediaType: model/3mf
-    isPlainText: true
+module:
+  mounts:
+    - source: content
+      target: content
+    - source: static
+      target: static
+    - source: content
+      target: static
+      includeFiles: "**/*.stl,**/*.3mf"
