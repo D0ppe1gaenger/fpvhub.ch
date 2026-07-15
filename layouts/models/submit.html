@@ -373,6 +373,20 @@
   </form>
 </div>
 </div>
+
+{{/* Success-Popup */}}
+<div id="success-popup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:var(--n1); border:1px solid var(--bdr); border-radius:1.25rem; padding:2.5rem 2rem; max-width:440px; width:100%; text-align:center;">
+    <div style="font-size:2.5rem; margin-bottom:1rem;">🎉</div>
+    <h2 style="font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; margin-bottom:0.75rem; -webkit-text-stroke:0;">Modell eingereicht!</h2>
+    <p style="color:var(--fm); font-size:0.9rem; line-height:1.7; margin-bottom:0.5rem;">Danke! Dein Modell wird vom Team geprüft.</p>
+    <p id="popup-pr" style="color:var(--fd); font-size:0.8rem; margin-bottom:2rem;"></p>
+    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+      <a href="/models/" class="btn-primary" style="justify-content:center; text-decoration:none;">← Zurück zur Übersicht</a>
+      <button onclick="closePopupAndReset()" style="background:var(--n2); border:1px solid var(--bdr); color:var(--fg); font-family:'Space Grotesk',sans-serif; font-size:0.85rem; font-weight:600; padding:0.8rem 1.6rem; border-radius:0.5rem; cursor:pointer;">Noch ein Modell einreichen</button>
+    </div>
+  </div>
+</div>
 {{ end }}
 
 {{ define "scripts" }}
@@ -382,9 +396,17 @@ const TOKEN_KEY = 'fpvhub_auth_token';
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
 function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
 
-// Edit-Modus: ?edit=<model-id> in der URL
 const editId = new URLSearchParams(window.location.search).get('edit');
 let isEditMode = !!editId;
+
+function closePopupAndReset() {
+  document.getElementById('success-popup').style.display = 'none';
+  document.getElementById('model-submit-form').reset();
+  if (isEditMode) {
+    window.location.href = '/models/submit/';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 async function checkAuth() {
   const token = getToken();
@@ -404,7 +426,6 @@ async function checkAuth() {
     document.getElementById('submit-form-container').style.display = '';
     window._discordUser = data.user;
 
-    // Edit-Modus: Formular prefüllen
     if (isEditMode) {
       await prefillForm(editId);
     }
@@ -419,38 +440,32 @@ async function prefillForm(modelId) {
     if (!res.ok) { console.error('Modell nicht gefunden'); return; }
     const { model } = await res.json();
 
-    // Titel, Beschreibung, Layer Height, Infill
     document.getElementById('title').value = model.title || '';
     document.getElementById('description').value = model.description || '';
     document.getElementById('layer_height').value = model.layer_height || 0.2;
     document.getElementById('infill').value = model.infill || 20;
     document.getElementById('supports').checked = model.supports || false;
 
-    // Kategorie
     const catSelect = document.getElementById('category');
     if (catSelect) catSelect.value = model.category || '';
 
-    // Mount-Pattern
     const mountSelect = document.getElementById('mount_pattern');
     if (mountSelect) mountSelect.value = model.mount_pattern || 'n-a';
 
-    // Frame-Grösse (Checkboxen)
     const frameSizes = model.frame_size || [];
     document.querySelectorAll('input[name="frame_size"]').forEach(cb => {
       cb.checked = frameSizes.includes(cb.value);
     });
 
-    // Material (Checkboxen)
     const materials = model.material || [];
     document.querySelectorAll('input[name="material"]').forEach(cb => {
       cb.checked = materials.includes(cb.value);
     });
 
-    // Lizenz (Radio-Buttons)
-    const licenseRadios = document.querySelectorAll('input[name="license"]');
-    licenseRadios.forEach(r => { r.checked = r.value === model.license; });
+    document.querySelectorAll('input[name="license"]').forEach(r => {
+      r.checked = r.value === model.license;
+    });
 
-    // Aktuelle Dateien anzeigen
     if (model.model_filename) {
       document.getElementById('current-model-file').style.display = '';
       document.getElementById('current-model-filename').textContent = model.model_filename;
@@ -460,11 +475,9 @@ async function prefillForm(modelId) {
       document.getElementById('current-thumb-filename').textContent = model.thumb_filename;
     }
 
-    // UI anpassen: Titel und Button-Text ändern
     document.querySelector('.page-hero h1').innerHTML = 'Modell <span>bearbeiten</span>';
     document.getElementById('submit-btn').textContent = 'Änderungen einreichen →';
 
-    // Hinweis anzeigen
     const statusEl = document.getElementById('form-status');
     statusEl.textContent = 'Bearbeitungs-Modus: Bestehende Daten wurden geladen.';
     statusEl.style.color = 'var(--g)';
@@ -511,7 +524,6 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   const thumbFile = document.getElementById('thumbnail').files[0];
   if (thumbFile) formData.append('thumbnail', thumbFile);
 
-  // Edit-Modus: PUT statt POST
   const url = isEditMode ? `${BOT}/api/models/${editId}` : `${BOT}/api/models/submit`;
   const method = isEditMode ? 'PUT' : 'POST';
 
@@ -519,10 +531,8 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
     const response = await fetch(url, { method, body: formData, headers: authHeaders() });
     const result = await response.json();
     if (response.ok) {
-      statusEl.textContent = isEditMode
-        ? 'Änderungen eingereicht! Das Team prüft sie kurz (PR #' + result.pr_number + ').'
-        : 'Danke! Dein Modell wird vom Team geprüft (PR #' + result.pr_number + ').';
-      statusEl.style.color = '#23d18b';
+      document.getElementById('popup-pr').textContent = 'PR #' + result.pr_number;
+      document.getElementById('success-popup').style.display = 'flex';
       if (!isEditMode) form.reset();
     } else {
       statusEl.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
