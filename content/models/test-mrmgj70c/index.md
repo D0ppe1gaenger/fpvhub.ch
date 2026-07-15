@@ -18,10 +18,10 @@ files:
       layer_height: 0.2
       infill: 20
       supports: true
-status: pending
+status: approved
 download_count: 0
 thumbnail: ''
-draft: true
+draft: false
 ---
 
 awdawdadwad
