@@ -2,3 +2,16 @@ baseURL: "https://fpvhub.ch"
 title: "FPV Hub"
 defaultContentLanguage: de
 disableKinds: ["taxonomy", "term", "RSS"]
+mediaTypes:
+  model/stl:
+    suffixes: ["stl"]
+  model/3mf:
+    suffixes: ["3mf"]
+
+outputFormats:
+  stl:
+    mediaType: model/stl
+    isPlainText: true
+  3mf:
+    mediaType: model/3mf
+    isPlainText: true
