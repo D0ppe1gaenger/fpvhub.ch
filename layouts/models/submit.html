@@ -176,6 +176,20 @@
   #submit-btn:hover { background: var(--o); transform: translateY(-1px); }
   #submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; background: var(--g); }
 
+  .btn-spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: var(--n3);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  #submit-btn.loading .btn-spinner { display: block; }
+  #submit-btn.loading .btn-label { opacity: 0.7; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   #form-status { margin-top: 1rem; font-size: 0.85rem; font-weight: 600; }
 
   /* Success Popup */
@@ -437,7 +451,10 @@
       </label>
     </div>
 
-    <button type="submit" id="submit-btn">Zur Prüfung einreichen →</button>
+    <button type="submit" id="submit-btn">
+      <span class="btn-spinner"></span>
+      <span class="btn-label">Zur Prüfung einreichen →</span>
+    </button>
     <p id="form-status"></p>
 
   </form>
@@ -548,7 +565,7 @@ async function prefillForm(modelId) {
     }
 
     document.querySelector('.page-hero h1').innerHTML = 'Modell <span>bearbeiten</span>';
-    document.getElementById('submit-btn').textContent = 'Änderungen einreichen →';
+    document.getElementById('submit-btn').querySelector('.btn-label').textContent = 'Änderungen einreichen →';
 
     const statusEl = document.getElementById('form-status');
     statusEl.textContent = 'Bearbeitungs-Modus: Bestehende Daten wurden geladen.';
@@ -679,7 +696,9 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   if (!allValid) return;
 
   submitBtn.disabled = true;
-  statusEl.textContent = isEditMode ? 'Änderungen werden eingereicht …' : 'Wird hochgeladen …';
+  submitBtn.classList.add('loading');
+  submitBtn.querySelector('.btn-label').textContent = isEditMode ? 'Wird eingereicht …' : 'Wird hochgeladen …';
+  statusEl.textContent = '';
   statusEl.style.color = '';
 
   const form = e.target;
@@ -722,6 +741,8 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
     statusEl.style.color = '#e74c3c';
   } finally {
     submitBtn.disabled = false;
+    submitBtn.classList.remove('loading');
+    submitBtn.querySelector('.btn-label').textContent = isEditMode ? 'Änderungen einreichen →' : 'Zur Prüfung einreichen →';
   }
 });
 </script>
