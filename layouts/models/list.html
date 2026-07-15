@@ -94,16 +94,52 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
   }
   .model-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
   .model-card-thumb-placeholder {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    color: var(--g);
-    opacity: 0.4;
-    font-size: 1.4rem;
-    letter-spacing: 0.05em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    transition: background 0.15s;
   }
+  .model-card-thumb-placeholder:hover { background: rgba(245,197,24,0.06); }
+  .model-card-thumb-placeholder .preview-icon {
+    width: 44px; height: 44px;
+    background: rgba(245,197,24,0.12);
+    border: 1.5px solid rgba(245,197,24,0.35);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .model-card-thumb-placeholder:hover .preview-icon {
+    background: rgba(245,197,24,0.22);
+    transform: scale(1.08);
+  }
+  .model-card-thumb-placeholder .preview-icon svg { width: 18px; height: 18px; fill: var(--g); }
+  .model-card-thumb-placeholder .preview-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--g);
+    opacity: 0.7;
+  }
+
+  .card-stl-viewer {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+  .card-stl-viewer.active { display: block; }
+  .card-stl-viewer canvas { width: 100% !important; height: 100% !important; display: block; }
 
   .model-card-body { padding: 1.1rem 1.25rem 1.25rem; }
   .model-card-body h3 {
@@ -129,9 +165,9 @@
 
 {{ define "main" }}
 <div class="page-hero">
-  <div class="eyebrow">FPV Parts</div>
-  <h1>FPV Parts <span>Database</span></h1>
-  <p class="page-sub">FPV Parts aus der FPV Hub Community.</p>
+  <div class="eyebrow">FPV-Teile</div>
+  <h1>FPV-Teile <span>Datenbank</span></h1>
+  <p class="page-sub">3D-druckbare Teile aus der FPV Hub Community – getestet, kategorisiert und frei verfügbar.</p>
   <div class="hero-actions">
     <a href="/models/submit/" class="btn-primary">Eigenes Modell einreichen →</a>
     <a href="/models/meine-einreichungen/" class="btn-secondary" id="my-submissions-link">Meine Einreichungen</a>
@@ -186,7 +222,13 @@
       {{ if .Params.thumbnail }}
       <img src="{{ .RelPermalink }}{{ .Params.thumbnail }}" alt="{{ .Params.title }}" loading="lazy">
       {{ else }}
-      <div class="model-card-thumb-placeholder">STL</div>
+      <div class="model-card-thumb-placeholder" onclick="loadCardViewer(this, '{{ .RelPermalink }}{{ (index .Params.files 0).filename }}')">
+        <div class="preview-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="fill:none;stroke:var(--g);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="preview-label">3D anzeigen</span>
+      </div>
+      <div class="card-stl-viewer"></div>
       {{ end }}
     </div>
 
@@ -244,6 +286,102 @@
     el.addEventListener('input', applyFilters);
   });
 })();
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+import { STLLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/STLLoader.js';
+
+let activeRenderer = null;
+let activeAnimFrame = null;
+
+window.loadCardViewer = function(placeholder, stlUrl) {
+  const container = placeholder.nextElementSibling; // .card-stl-viewer
+  if (!container) return;
+
+  // Vorherigen Viewer deaktivieren
+  if (activeRenderer) {
+    activeRenderer.dispose();
+    activeRenderer = null;
+    if (activeAnimFrame) cancelAnimationFrame(activeAnimFrame);
+    document.querySelectorAll('.card-stl-viewer.active').forEach(el => {
+      el.classList.remove('active');
+      el.innerHTML = '';
+    });
+    document.querySelectorAll('.model-card-thumb-placeholder.hidden').forEach(el => {
+      el.classList.remove('hidden');
+    });
+  }
+
+  // Placeholder verstecken, Viewer anzeigen
+  placeholder.classList.add('hidden');
+  placeholder.style.display = 'none';
+  container.classList.add('active');
+
+  const w = container.clientWidth || 220;
+  const h = container.clientHeight || 220;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 5000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+  activeRenderer = renderer;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+  const dLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dLight.position.set(1, 1, 1);
+  scene.add(dLight);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.enableZoom = false; // Kein Zoom in Karten-Ansicht
+
+  // Klick auf Karte soll trotzdem zur Detail-Seite führen (nicht durch Drag blockieren)
+  let isDragging = false;
+  renderer.domElement.addEventListener('mousedown', () => { isDragging = false; });
+  renderer.domElement.addEventListener('mousemove', () => { isDragging = true; });
+  renderer.domElement.addEventListener('mouseup', (e) => {
+    if (!isDragging) {
+      const card = container.closest('a.model-card');
+      if (card) window.location.href = card.href;
+    }
+  });
+  renderer.domElement.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+
+  new STLLoader().load(stlUrl, (geometry) => {
+    geometry.center();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xf5c518, metalness: 0.1, roughness: 0.6 });
+    const mesh = new THREE.Mesh(geometry, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    scene.add(mesh);
+
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = box.getSize(new THREE.Vector3()).length();
+    camera.position.set(size * 0.7, size * 0.4, size * 0.7);
+    controls.update();
+
+    function animate() {
+      activeAnimFrame = requestAnimationFrame(animate);
+      mesh.rotation.z += 0.005; // Langsame Auto-Rotation
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  }, undefined, () => {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.75rem;color:var(--fd);">Vorschau nicht verfügbar</div>';
+  });
+};
 </script>
 {{ end }}
 
