@@ -234,8 +234,13 @@
   .popup-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--fg); margin-bottom: 0.6rem; -webkit-text-stroke: 0; }
   .popup-sub { color: var(--fm); font-size: 0.9rem; line-height: 1.7; margin-bottom: 0.4rem; font-weight: 300; }
   .popup-pr { color: var(--fd); font-size: 0.78rem; margin-bottom: 2rem; }
-  .popup-actions { display: flex; flex-direction: column; gap: 0.75rem; }
+  .popup-actions { display: flex; flex-direction: row; gap: 0.75rem; }
+  .popup-actions > * { flex: 1; justify-content: center; }
   .btn-popup-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     background: var(--n2);
     border: 1px solid var(--bdr);
     color: var(--fg);
@@ -248,6 +253,7 @@
     transition: border-color 0.15s, background 0.15s;
   }
   .btn-popup-secondary:hover { border-color: var(--bdrh); background: var(--n1); }
+  @media (max-width: 480px) { .popup-actions { flex-direction: column; } }
 
   .field-error { font-size: 0.78rem; color: #e74c3c; margin-top: 0.4rem; display: none; }
   .field-error.visible { display: block; }
