@@ -178,6 +178,63 @@
 
   #form-status { margin-top: 1rem; font-size: 0.85rem; font-weight: 600; }
 
+  /* Success Popup */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+  }
+  .popup-overlay.visible { display: flex; }
+  .popup-box {
+    background: var(--n1);
+    border: 1px solid var(--bdrh);
+    border-radius: 1.25rem;
+    padding: 2.5rem 2rem;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    animation: popup-in 0.2s ease;
+  }
+  @keyframes popup-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  .popup-icon {
+    width: 64px; height: 64px;
+    background: rgba(245,197,24,0.12);
+    border: 2px solid rgba(245,197,24,0.35);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+  }
+  .popup-icon svg { width: 28px; height: 28px; stroke: var(--g); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .popup-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--fg); margin-bottom: 0.6rem; -webkit-text-stroke: 0; }
+  .popup-sub { color: var(--fm); font-size: 0.9rem; line-height: 1.7; margin-bottom: 0.4rem; font-weight: 300; }
+  .popup-pr { color: var(--fd); font-size: 0.78rem; margin-bottom: 2rem; }
+  .popup-actions { display: flex; flex-direction: column; gap: 0.75rem; }
+  .btn-popup-secondary {
+    background: var(--n2);
+    border: 1px solid var(--bdr);
+    color: var(--fg);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.8rem 1.6rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn-popup-secondary:hover { border-color: var(--bdrh); background: var(--n1); }
+
   .field-error { font-size: 0.78rem; color: #e74c3c; margin-top: 0.4rem; display: none; }
   .field-error.visible { display: block; }
   .input-invalid { border-color: #e74c3c !important; }
@@ -388,15 +445,17 @@
 </div>
 
 {{/* Success-Popup */}}
-<div id="success-popup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
-  <div style="background:var(--n1); border:1px solid var(--bdr); border-radius:1.25rem; padding:2.5rem 2rem; max-width:440px; width:100%; text-align:center;">
-    <div style="font-size:2.5rem; margin-bottom:1rem;">🎉</div>
-    <h2 style="font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; margin-bottom:0.75rem; -webkit-text-stroke:0;">Modell eingereicht!</h2>
-    <p style="color:var(--fm); font-size:0.9rem; line-height:1.7; margin-bottom:0.5rem;">Danke! Dein Modell wird vom Team geprüft.</p>
-    <p id="popup-pr" style="color:var(--fd); font-size:0.8rem; margin-bottom:2rem;"></p>
-    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+<div id="success-popup" class="popup-overlay">
+  <div class="popup-box">
+    <div class="popup-icon">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h2 class="popup-title">Modell eingereicht!</h2>
+    <p class="popup-sub">Danke! Dein Modell wird vom Team geprüft und danach veröffentlicht.</p>
+    <p id="popup-pr" class="popup-pr"></p>
+    <div class="popup-actions">
       <a href="/models/" class="btn-primary" style="justify-content:center; text-decoration:none;">← Zurück zur Übersicht</a>
-      <button onclick="closePopupAndReset()" style="background:var(--n2); border:1px solid var(--bdr); color:var(--fg); font-family:'Space Grotesk',sans-serif; font-size:0.85rem; font-weight:600; padding:0.8rem 1.6rem; border-radius:0.5rem; cursor:pointer;">Noch ein Modell einreichen</button>
+      <button onclick="closePopupAndReset()" class="btn-popup-secondary">Noch ein Modell einreichen</button>
     </div>
   </div>
 </div>
@@ -413,7 +472,7 @@ const editId = new URLSearchParams(window.location.search).get('edit');
 let isEditMode = !!editId;
 
 function closePopupAndReset() {
-  document.getElementById('success-popup').style.display = 'none';
+  document.getElementById('success-popup').classList.remove('visible');
   document.getElementById('model-submit-form').reset();
   if (isEditMode) {
     window.location.href = '/models/submit/';
@@ -652,7 +711,7 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
     const result = await response.json();
     if (response.ok) {
       document.getElementById('popup-pr').textContent = 'PR #' + result.pr_number;
-      document.getElementById('success-popup').style.display = 'flex';
+      document.getElementById('success-popup').classList.add('visible');
       if (!isEditMode) form.reset();
     } else {
       statusEl.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
