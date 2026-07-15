@@ -174,9 +174,15 @@
     transition: background 0.15s, transform 0.1s;
   }
   #submit-btn:hover { background: var(--o); transform: translateY(-1px); }
-  #submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  #submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; background: var(--g); }
 
   #form-status { margin-top: 1rem; font-size: 0.85rem; font-weight: 600; }
+
+  .field-error { font-size: 0.78rem; color: #e74c3c; margin-top: 0.4rem; display: none; }
+  .field-error.visible { display: block; }
+  .input-invalid { border-color: #e74c3c !important; }
+  .checkbox-group.group-invalid label,
+  .radio-group.group-invalid .radio-card { border-color: rgba(231,76,60,0.5); }
 
   @media (max-width: 640px) {
     .form-group { padding: 1.4rem 1.25rem; }
@@ -221,6 +227,7 @@
           <label for="title">Titel *</label>
           <input type="text" id="title" name="title" required
                  placeholder="z.B. RunCam Nano 3 Mount – 20mm">
+          <span class="field-error" id="err-title">Bitte einen Titel eingeben (mindestens 3 Zeichen).</span>
         </div>
       </div>
 
@@ -237,20 +244,22 @@
             <option value="canopy">Canopy</option>
             <option value="battery-strap">Akku-Halterung</option>
             <option value="spare-part">Ersatzteil</option>
-            <option value="tool">Werkzeug</option>
+            <option value="tool">Werkzeug</tool>
             <option value="other">Sonstiges</option>
           </select>
+          <span class="field-error" id="err-category">Bitte eine Kategorie wählen.</span>
         </div>
 
         <div class="form-section">
           <label>Frame-Grösse *</label>
-          <div class="checkbox-group">
+          <div class="checkbox-group" id="group-frame-size">
             <label><input type="checkbox" name="frame_size" value="3in"> 3"</label>
             <label><input type="checkbox" name="frame_size" value="5in"> 5"</label>
             <label><input type="checkbox" name="frame_size" value="7in"> 7"</label>
             <label><input type="checkbox" name="frame_size" value="10in"> 10"</label>
             <label><input type="checkbox" name="frame_size" value="other"> Andere/Universal</label>
           </div>
+          <span class="field-error" id="err-frame-size">Bitte mindestens eine Frame-Grösse wählen.</span>
         </div>
 
         <div class="form-section">
@@ -266,13 +275,14 @@
 
         <div class="form-section">
           <label>Empfohlenes Material *</label>
-          <div class="checkbox-group">
+          <div class="checkbox-group" id="group-material">
             <label><input type="checkbox" name="material" value="TPU"> TPU</label>
             <label><input type="checkbox" name="material" value="PETG"> PETG</label>
             <label><input type="checkbox" name="material" value="ABS"> ABS</label>
             <label><input type="checkbox" name="material" value="PLA"> PLA</label>
             <label><input type="checkbox" name="material" value="PC"> PC</label>
           </div>
+          <span class="field-error" id="err-material">Bitte mindestens ein Material wählen.</span>
         </div>
       </div>
 
@@ -281,7 +291,7 @@
 
         <div class="form-section">
           <label>Lizenz *</label>
-          <div class="radio-group">
+          <div class="radio-group" id="group-license">
             <label class="radio-card">
               <input type="radio" name="license" value="CC0-1.0" required>
               <span class="radio-card-text">
@@ -304,6 +314,7 @@
               </span>
             </label>
           </div>
+          <span class="field-error" id="err-license">Bitte eine Lizenz wählen.</span>
           <p class="hint">Unsicher? "Frei nutzbar" ist die einfachste Wahl für die Community.</p>
         </div>
 
@@ -311,6 +322,7 @@
           <label for="description">Beschreibung *</label>
           <textarea id="description" name="description" required rows="4"
                     placeholder="Was ist es, wofür ist es, auf welchem Frame getestet?"></textarea>
+          <span class="field-error" id="err-description">Bitte eine Beschreibung eingeben (mindestens 10 Zeichen).</span>
         </div>
       </div>
 
@@ -343,6 +355,7 @@
           <div class="file-input-row">
             <input type="file" id="model_file" name="model_file" accept=".stl,.3mf">
           </div>
+          <span class="field-error" id="err-model-file">Bitte eine .stl oder .3mf Datei hochladen.</span>
           <p class="hint">Max. 50 MB.</p>
         </div>
 
@@ -489,24 +502,131 @@ async function prefillForm(modelId) {
 
 checkAuth();
 
+// ============================================================
+// Live-Validierung + Button-State
+// ============================================================
+const submitBtn = document.getElementById('submit-btn');
+
+function showError(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('visible', show);
+}
+
+function setInvalid(id, invalid) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('input-invalid', invalid);
+}
+
+function validateTitle() {
+  const val = document.getElementById('title').value.trim();
+  const invalid = val.length < 3;
+  setInvalid('title', invalid);
+  showError('err-title', invalid);
+  return !invalid;
+}
+
+function validateCategory() {
+  const val = document.getElementById('category').value;
+  const invalid = !val;
+  setInvalid('category', invalid);
+  showError('err-category', invalid);
+  return !invalid;
+}
+
+function validateFrameSize() {
+  const checked = document.querySelectorAll('input[name="frame_size"]:checked').length > 0;
+  showError('err-frame-size', !checked);
+  document.getElementById('group-frame-size')?.classList.toggle('group-invalid', !checked);
+  return checked;
+}
+
+function validateMaterial() {
+  const checked = document.querySelectorAll('input[name="material"]:checked').length > 0;
+  showError('err-material', !checked);
+  document.getElementById('group-material')?.classList.toggle('group-invalid', !checked);
+  return checked;
+}
+
+function validateLicense() {
+  const checked = document.querySelectorAll('input[name="license"]:checked').length > 0;
+  showError('err-license', !checked);
+  document.getElementById('group-license')?.classList.toggle('group-invalid', !checked);
+  return checked;
+}
+
+function validateDescription() {
+  const val = document.getElementById('description').value.trim();
+  const invalid = val.length < 10;
+  setInvalid('description', invalid);
+  showError('err-description', invalid);
+  return !invalid;
+}
+
+function validateModelFile() {
+  if (isEditMode) return true; // Im Edit-Modus optional
+  const file = document.getElementById('model_file').files[0];
+  const invalid = !file;
+  showError('err-model-file', invalid);
+  return !invalid;
+}
+
+function validateRights() {
+  return document.getElementById('rights_confirm').checked;
+}
+
+function checkAllValid() {
+  const valid =
+    document.getElementById('title').value.trim().length >= 3 &&
+    document.getElementById('category').value &&
+    document.querySelectorAll('input[name="frame_size"]:checked').length > 0 &&
+    document.querySelectorAll('input[name="material"]:checked').length > 0 &&
+    document.querySelectorAll('input[name="license"]:checked').length > 0 &&
+    document.getElementById('description').value.trim().length >= 10 &&
+    (isEditMode || document.getElementById('model_file').files[0]) &&
+    document.getElementById('rights_confirm').checked;
+  submitBtn.disabled = !valid;
+}
+
+// Event-Listener für Live-Validierung
+document.getElementById('title').addEventListener('blur', () => { validateTitle(); checkAllValid(); });
+document.getElementById('title').addEventListener('input', checkAllValid);
+document.getElementById('category').addEventListener('change', () => { validateCategory(); checkAllValid(); });
+document.getElementById('description').addEventListener('blur', () => { validateDescription(); checkAllValid(); });
+document.getElementById('description').addEventListener('input', checkAllValid);
+document.getElementById('model_file').addEventListener('change', () => { validateModelFile(); checkAllValid(); });
+document.getElementById('rights_confirm').addEventListener('change', checkAllValid);
+
+document.querySelectorAll('input[name="frame_size"]').forEach(cb => {
+  cb.addEventListener('change', () => { validateFrameSize(); checkAllValid(); });
+});
+document.querySelectorAll('input[name="material"]').forEach(cb => {
+  cb.addEventListener('change', () => { validateMaterial(); checkAllValid(); });
+});
+document.querySelectorAll('input[name="license"]').forEach(r => {
+  r.addEventListener('change', () => { validateLicense(); checkAllValid(); });
+});
+
+// Initial: Button deaktiviert
+submitBtn.disabled = true;
+
 document.getElementById('model-submit-form').addEventListener('submit', async function (e) {
   e.preventDefault();
   const statusEl = document.getElementById('form-status');
-  const submitBtn = document.getElementById('submit-btn');
-  const form = e.target;
-  const frameSizes = form.querySelectorAll('input[name="frame_size"]:checked');
-  const materials = form.querySelectorAll('input[name="material"]:checked');
 
-  if (!frameSizes.length) { statusEl.textContent = 'Bitte mindestens eine Frame-Grösse wählen.'; statusEl.style.color = '#e74c3c'; return; }
-  if (!materials.length) { statusEl.textContent = 'Bitte mindestens ein Material wählen.'; statusEl.style.color = '#e74c3c'; return; }
-
-  const modelFile = document.getElementById('model_file').files[0];
-  if (!isEditMode && !modelFile) { statusEl.textContent = 'Bitte eine Datei hochladen.'; statusEl.style.color = '#e74c3c'; return; }
-  if (modelFile && modelFile.size > 50 * 1024 * 1024) { statusEl.textContent = 'Datei ist grösser als 50 MB.'; statusEl.style.color = '#e74c3c'; return; }
+  // Nochmal alles validieren (Sicherheit)
+  const allValid = validateTitle() & validateCategory() & validateFrameSize() &
+    validateMaterial() & validateLicense() & validateDescription() &
+    validateModelFile() & validateRights();
+  if (!allValid) return;
 
   submitBtn.disabled = true;
   statusEl.textContent = isEditMode ? 'Änderungen werden eingereicht …' : 'Wird hochgeladen …';
   statusEl.style.color = '';
+
+  const form = e.target;
+  const frameSizes = form.querySelectorAll('input[name="frame_size"]:checked');
+  const materials = form.querySelectorAll('input[name="material"]:checked');
+  const modelFile = document.getElementById('model_file').files[0];
 
   const formData = new FormData();
   formData.append('title', form.title.value);
@@ -519,7 +639,7 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   formData.append('layer_height', form.layer_height.value);
   formData.append('infill', form.infill.value);
   formData.append('supports', form.supports.checked ? 'true' : 'false');
-  formData.append('rights_confirm', form.rights_confirm.checked ? 'true' : 'false');
+  formData.append('rights_confirm', 'true');
   if (modelFile) formData.append('model_file', modelFile);
   const thumbFile = document.getElementById('thumbnail').files[0];
   if (thumbFile) formData.append('thumbnail', thumbFile);
