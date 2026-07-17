@@ -485,6 +485,72 @@
 {{ end }}
 
 {{ define "scripts" }}
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/STLLoader.js';
+
+// Rendert die STL unsichtbar und liefert ein PNG-Blob als automatisches Vorschaubild
+window.generateThumbnailFromSTL = function(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const loader = new STLLoader();
+        const geometry = loader.parse(e.target.result);
+        geometry.center();
+
+        const size = 512;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        renderer.setSize(size, size);
+        renderer.setPixelRatio(1);
+
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.3));
+        const dLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dLight.position.set(1, 1.2, 1);
+        scene.add(dLight);
+
+        const mat = new THREE.MeshStandardMaterial({ color: 0xf5c518, metalness: 0.1, roughness: 0.6 });
+        const mesh = new THREE.Mesh(geometry, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.rotation.z = Math.PI / 5; // leicht gedreht, wirkt lebendiger als Frontalansicht
+        scene.add(mesh);
+
+        const box = new THREE.Box3().setFromObject(mesh);
+        const dim = box.getSize(new THREE.Vector3()).length();
+        camera.position.set(dim * 0.65, dim * 0.5, dim * 0.75);
+        camera.lookAt(0, 0, 0);
+
+        renderer.render(scene, camera);
+
+        renderer.domElement.toBlob((blob) => {
+          renderer.dispose();
+          if (blob) {
+            resolve(new File([blob], 'auto-thumb.png', { type: 'image/png' }));
+          } else {
+            resolve(null);
+          }
+        }, 'image/png');
+      } catch (err) {
+        console.error('Thumbnail-Generierung fehlgeschlagen:', err);
+        resolve(null);
+      }
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsArrayBuffer(file);
+  });
+};
+</script>
+
 <script>
 const BOT = 'https://fpvhub-bot-production.up.railway.app';
 const TOKEN_KEY = 'fpvhub_auth_token';
@@ -726,7 +792,20 @@ document.getElementById('model-submit-form').addEventListener('submit', async fu
   formData.append('rights_confirm', 'true');
   if (modelFile) formData.append('model_file', modelFile);
   const thumbFile = document.getElementById('thumbnail').files[0];
-  if (thumbFile) formData.append('thumbnail', thumbFile);
+
+  if (thumbFile) {
+    formData.append('thumbnail', thumbFile);
+  } else if (modelFile) {
+    // Kein manuelles Bild gewählt: automatisch aus der STL generieren
+    statusEl.textContent = 'Vorschaubild wird generiert …';
+    try {
+      const autoThumb = await window.generateThumbnailFromSTL(modelFile);
+      if (autoThumb) formData.append('thumbnail', autoThumb);
+    } catch (err) {
+      console.error('Auto-Thumbnail fehlgeschlagen:', err);
+    }
+    statusEl.textContent = '';
+  }
 
   const url = isEditMode ? `${BOT}/api/models/${editId}` : `${BOT}/api/models/submit`;
   const method = isEditMode ? 'PUT' : 'POST';
