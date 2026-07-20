@@ -13,7 +13,7 @@
   h1 span { color: var(--g); }
   .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 46ch; margin: 0 auto; }
 
-  .game-wrap { display: flex; justify-content: center; padding: 1.5rem 0 3rem; }
+  .game-wrap { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 1.5rem; padding: 1.5rem 1rem 3rem; }
   .game-stage {
     position: relative;
     width: 100%;
@@ -28,6 +28,29 @@
     user-select: none;
   }
   #gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .game-sidebar {
+    width: 100%;
+    max-width: 420px;
+    flex-shrink: 0;
+  }
+  @media (min-width: 800px) {
+    .game-sidebar { max-width: 220px; }
+  }
+  .sidebar-panel {
+    background: var(--n1);
+    border: 1px solid var(--bdr);
+    border-radius: 1rem;
+    padding: 1.1rem 1.2rem;
+  }
+  .sidebar-panel h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    margin-bottom: 0.7rem;
+  }
+  .sidebar-list { display: flex; flex-direction: column; gap: 0.55rem; }
+  .sidebar-list .item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--fm); }
+  .sidebar-list .item .ic { font-size: 1.05rem; flex-shrink: 0; }
 
   .game-hud {
     position: absolute; top: 0; left: 0; right: 0;
@@ -107,6 +130,18 @@
     align-self: flex-start;
   }
 
+  .effects-hud {
+    position: absolute; top: 3rem; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 0.4rem;
+    pointer-events: none; z-index: 3;
+  }
+  .effects-hud .effect-chip {
+    display: flex; align-items: center; gap: 0.3rem;
+    background: rgba(8,11,24,0.6); border: 1px solid var(--bdrh);
+    border-radius: 999px; padding: 0.2rem 0.55rem;
+    font-size: 0.72rem; color: var(--fg); font-weight: 600;
+  }
+
   .level-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -170,6 +205,7 @@
       <span class="level-badge" id="levelBadge"></span>
       <span class="best">Best: <span id="bestLabel">0</span></span>
     </div>
+    <div class="effects-hud" id="effectsHud"></div>
     <div class="game-overlay" id="startOverlay">
       <h2>Gate <span>Rush</span></h2>
       <p>Wähle ein Level, dann tippen / klicken / Leertaste zum Fliegen.</p>
@@ -185,6 +221,18 @@
       </div>
       <button class="btn-primary" id="retryBtn">Nochmal →</button>
       <button class="btn-ghost" id="changeLevelBtn">Level wechseln</button>
+    </div>
+  </div>
+  <div class="game-sidebar">
+    <div class="sidebar-panel">
+      <h3>Power-Ups</h3>
+      <div class="sidebar-list">
+        <div class="item"><span class="ic">🛡️</span><span>Schild - fängt einen Crash ab</span></div>
+        <div class="item"><span class="ic">🐌</span><span>Zeitlupe - Tempo kurz runter</span></div>
+        <div class="item"><span class="ic">🔻</span><span>Schrumpf - Drohne wird kleiner</span></div>
+        <div class="item"><span class="ic">🪶</span><span>Feder - schwebt sanfter</span></div>
+        <div class="item"><span class="ic">⭐</span><span>+5 Punkte sofort</span></div>
+      </div>
     </div>
   </div>
 </div>
@@ -219,6 +267,7 @@
   const nameCapture = document.getElementById('nameCapture');
   const topNameInput = document.getElementById('topNameInput');
   const saveNameBtn = document.getElementById('saveNameBtn');
+  const effectsHud = document.getElementById('effectsHud');
 
   const BOT_API = 'https://fpvhub-bot-production.up.railway.app';
   const NAME_KEY = 'fpvhub_gate_rush_name';
@@ -332,6 +381,7 @@
 
   let state = 'ready'; // ready | playing | over
   let drone, gates, score, speed, frame, groundOffset, droneTrail;
+  let invulnFrames, activeEffects;
   let animT = 0; // läuft immer weiter, unabhängig vom Spielstatus (für Ambient-Animationen)
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -404,6 +454,15 @@
   let currentLevelIndex = parseInt(localStorage.getItem(LEVEL_KEY) || '0', 10);
   if (!(currentLevelIndex >= 0 && currentLevelIndex < LEVELS.length)) currentLevelIndex = 0;
 
+  // 5 Power-up-Typen. Spawnen immer exakt in der Gate-Lücke (garantiert freie Fläche).
+  const POWERUP_TYPES = [
+    { id: 'shield', icon: '🛡️', color: '120,200,255' },
+    { id: 'slowmo', icon: '🐌', color: '180,220,140' },
+    { id: 'shrink', icon: '🔻', color: '255,110,110' },
+    { id: 'feather', icon: '🪶', color: '235,235,235' },
+    { id: 'bonus', icon: '⭐', color: '245,197,24' },
+  ];
+
   function updateLevelBadge() {
     const lvl = LEVELS[currentLevelIndex];
     levelBadge.textContent = `${lvl.icon} ${lvl.name}`;
@@ -443,6 +502,9 @@
     frame = 0;
     groundOffset = 0;
     droneTrail = [];
+    invulnFrames = 0;
+    activeEffects = { shield: false, slowmoFrames: 0, shrinkFrames: 0, featherFrames: 0 };
+    updateEffectsHud();
     scoreLabel.textContent = '0';
   }
   reset();
@@ -454,6 +516,12 @@
     const gapH = Math.max(118, 168 - frame * 0.035);
     const gapY = GATE_MARGIN + Math.random() * (BASE_H - GATE_MARGIN * 2 - gapH);
     const moving = score >= MOVING_GATE_SCORE && Math.random() < 0.5;
+    // Power-up: nur wenn aktiviert, ~40% der Gates, immer exakt in der Mitte
+    // der eigenen Gate-Lücke platziert -> zwangsläufig auf freier Fläche,
+    // wandert bei beweglichen Gates automatisch mit.
+    const powerup = (frame > 30 && Math.random() < 0.4)
+      ? POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
+      : null;
     gates.push({
       x: BASE_W + 20,
       baseGapY: gapY,
@@ -464,7 +532,46 @@
       moveAmp: 22 + Math.random() * 26,
       moveSpeed: 0.018 + Math.random() * 0.014,
       movePhase: Math.random() * Math.PI * 2,
+      powerup,
+      powerupCollected: false,
     });
+  }
+
+  function updateEffectsHud() {
+    const active = [];
+    if (activeEffects.shield) active.push('🛡️');
+    if (activeEffects.slowmoFrames > 0) active.push('🐌');
+    if (activeEffects.shrinkFrames > 0) active.push('🔻');
+    if (activeEffects.featherFrames > 0) active.push('🪶');
+    effectsHud.textContent = active.join(' ');
+  }
+
+  function applyPowerup(type) {
+    switch (type.id) {
+      case 'shield': activeEffects.shield = true; break;
+      case 'slowmo': activeEffects.slowmoFrames = 240; break;
+      case 'shrink': activeEffects.shrinkFrames = 300; break;
+      case 'feather': activeEffects.featherFrames = 300; break;
+      case 'bonus': score += 5; scoreLabel.textContent = score; break;
+    }
+    updateEffectsHud();
+  }
+
+  // Gibt true zurück, wenn das Spiel tatsächlich enden soll.
+  // Ein aktiver Schild fängt genau einen Crash ab und schaltet danach
+  // kurz Unverwundbarkeit ein, damit man nicht sofort nochmal erwischt wird.
+  function handleCollision() {
+    if (invulnFrames > 0) return false;
+    if (activeEffects.shield) {
+      activeEffects.shield = false;
+      invulnFrames = 45;
+      drone.y = clamp(drone.y, DRONE_R + 2, BASE_H - DRONE_R - 2);
+      drone.vy = 0;
+      updateEffectsHud();
+      return false;
+    }
+    endGame();
+    return true;
   }
 
   function flap() {
@@ -497,7 +604,16 @@
   function update() {
     if (state !== 'playing') return;
     frame++;
-    drone.vy += GRAVITY;
+
+    if (invulnFrames > 0) invulnFrames--;
+    if (activeEffects.slowmoFrames > 0 && --activeEffects.slowmoFrames === 0) updateEffectsHud();
+    if (activeEffects.shrinkFrames > 0 && --activeEffects.shrinkFrames === 0) updateEffectsHud();
+    if (activeEffects.featherFrames > 0 && --activeEffects.featherFrames === 0) updateEffectsHud();
+
+    const gravNow = GRAVITY * (activeEffects.featherFrames > 0 ? 0.45 : 1);
+    const rNow = DRONE_R * (activeEffects.shrinkFrames > 0 ? 0.55 : 1);
+
+    drone.vy += gravNow;
     drone.y += drone.vy;
     drone.rot = Math.max(-0.5, Math.min(1.1, drone.vy / 12));
 
@@ -506,10 +622,13 @@
       if (droneTrail.length > 5) droneTrail.shift();
     }
 
-    if (drone.y - DRONE_R < 0 || drone.y + DRONE_R > BASE_H) { endGame(); return; }
+    if (drone.y - rNow < 0 || drone.y + rNow > BASE_H) {
+      if (handleCollision()) return;
+    }
 
     // Tempo steigt kontinuierlich mit der Spielzeit, nicht in Score-Sprüngen
     speed = Math.min(5.2, 2.6 + frame * 0.0028);
+    if (activeEffects.slowmoFrames > 0) speed *= 0.55;
 
     if (frame % Math.max(58, Math.round(95 - score * 1.2)) === 0) spawnGate();
 
@@ -522,11 +641,24 @@
           BASE_H - GATE_MARGIN - g.gapH
         );
       }
-      const withinX = DRONE_X + DRONE_R > g.x && DRONE_X - DRONE_R < g.x + GATE_W;
-      if (withinX) {
-        if (drone.y - DRONE_R < g.gapY || drone.y + DRONE_R > g.gapY + g.gapH) { endGame(); return; }
+
+      if (g.powerup && !g.powerupCollected) {
+        const px = g.x + GATE_W / 2, py = g.gapY + g.gapH / 2;
+        const dx = DRONE_X - px, dy = drone.y - py;
+        const collectR = rNow + 12;
+        if (dx * dx + dy * dy < collectR * collectR) {
+          g.powerupCollected = true;
+          applyPowerup(g.powerup);
+        }
       }
-      if (!g.passed && g.x + GATE_W < DRONE_X - DRONE_R) {
+
+      const withinX = DRONE_X + rNow > g.x && DRONE_X - rNow < g.x + GATE_W;
+      if (withinX) {
+        if (drone.y - rNow < g.gapY || drone.y + rNow > g.gapY + g.gapH) {
+          if (handleCollision()) return;
+        }
+      }
+      if (!g.passed && g.x + GATE_W < DRONE_X - rNow) {
         g.passed = true;
         score++;
         scoreLabel.textContent = score;
@@ -708,11 +840,21 @@
   }
 
   // --- Drohne: Carbon-Arme, spinnende Props, LEDs, FPV-Kamera + Antenne, Motion-Trail ---
-  function drawDroneShape(x, y, rot, alpha, spin) {
+  function drawDroneShape(x, y, rot, alpha, spin, scale, shielded) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
     ctx.rotate(rot);
+    ctx.scale(scale, scale);
+
+    if (shielded) {
+      const pulse = 0.6 + 0.4 * Math.sin(animT * 0.18);
+      ctx.strokeStyle = `rgba(120,200,255,${0.5 + 0.3 * pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 24, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     const armLen = 19;
     const armPts = [[-1, -0.55], [1, -0.55], [-1, 0.55], [1, 0.55]];
@@ -789,16 +931,43 @@
 
   function drawDrone() {
     const spin = animT * 0.12;
+    const scaleNow = activeEffects.shrinkFrames > 0 ? 0.55 : 1;
+    const flicker = invulnFrames > 0 && Math.floor(animT / 4) % 2 === 0 ? 0.35 : 1;
     droneTrail.forEach((t, i) => {
       const alpha = 0.09 * (i + 1) / droneTrail.length;
-      drawDroneShape(DRONE_X - (droneTrail.length - i) * 6, t.y, t.rot, alpha, spin);
+      drawDroneShape(DRONE_X - (droneTrail.length - i) * 6, t.y, t.rot, alpha, spin, scaleNow, false);
     });
-    drawDroneShape(DRONE_X, drone.y, drone.rot, 1, spin);
+    drawDroneShape(DRONE_X, drone.y, drone.rot, flicker, spin, scaleNow, activeEffects.shield);
+  }
+
+  function drawPowerupBadge(g) {
+    if (!g.powerup || g.powerupCollected) return;
+    const px = g.x + GATE_W / 2;
+    const py = g.gapY + g.gapH / 2;
+    const pulse = 0.6 + 0.4 * Math.sin(animT * 0.2);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.beginPath();
+    ctx.arc(0, 0, 13, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${g.powerup.color},${(0.16 + 0.14 * pulse).toFixed(2)})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${g.powerup.color},0.9)`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = `rgba(${g.powerup.color},0.7)`;
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(g.powerup.icon, 0, 1);
+    ctx.restore();
   }
 
   function draw() {
     drawBackground();
     for (const g of gates) drawGate(g);
+    for (const g of gates) drawPowerupBadge(g);
     drawDrone();
   }
 
