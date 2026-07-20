@@ -13,7 +13,7 @@
   h1 span { color: var(--g); }
   .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 46ch; margin: 0 auto; }
 
-  .game-wrap { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 1.5rem; padding: 1.5rem 1rem 3rem; }
+  .game-wrap { display: flex; justify-content: center; padding: 1.5rem 0 3rem; }
   .game-stage {
     position: relative;
     width: 100%;
@@ -28,29 +28,6 @@
     user-select: none;
   }
   #gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-
-  .game-sidebar {
-    width: 100%;
-    max-width: 420px;
-    flex-shrink: 0;
-  }
-  @media (min-width: 800px) {
-    .game-sidebar { max-width: 220px; }
-  }
-  .sidebar-panel {
-    background: var(--n1);
-    border: 1px solid var(--bdr);
-    border-radius: 1rem;
-    padding: 1.1rem 1.2rem;
-  }
-  .sidebar-panel h3 {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.85rem; font-weight: 800;
-    margin-bottom: 0.7rem;
-  }
-  .sidebar-list { display: flex; flex-direction: column; gap: 0.55rem; }
-  .sidebar-list .item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--fm); }
-  .sidebar-list .item .ic { font-size: 1.05rem; flex-shrink: 0; }
 
   .game-hud {
     position: absolute; top: 0; left: 0; right: 0;
@@ -223,18 +200,6 @@
       <button class="btn-ghost" id="changeLevelBtn">Level wechseln</button>
     </div>
   </div>
-  <div class="game-sidebar">
-    <div class="sidebar-panel">
-      <h3>Power-Ups</h3>
-      <div class="sidebar-list">
-        <div class="item"><span class="ic">🛡️</span><span>Schild - fängt einen Crash ab</span></div>
-        <div class="item"><span class="ic">🐌</span><span>Zeitlupe - Tempo kurz runter</span></div>
-        <div class="item"><span class="ic">🔻</span><span>Schrumpf - Drohne wird kleiner</span></div>
-        <div class="item"><span class="ic">🪶</span><span>Feder - schwebt sanfter</span></div>
-        <div class="item"><span class="ic">⭐</span><span>+5 Punkte sofort</span></div>
-      </div>
-    </div>
-  </div>
 </div>
 <p class="game-hint">Schaffst du es unter die Top 10, fragen wir dich einmalig nach deinem Namen - danach merkt sich dein Gerät ihn. Dein Score landet dann auf der <b>#Gate Rush</b> Bestenliste in unserem Discord.</p>
 
@@ -378,6 +343,7 @@
   const DRONE_X = 100;
   const DRONE_R = 15;
   const MOVING_GATE_SCORE = 6; // ab diesem Score können Gates auch vertikal wandern
+  const NIGHT_MODE_SCORE = 10; // ab diesem Score können Gates blinken (Nachtmodus)
 
   let state = 'ready'; // ready | playing | over
   let drone, gates, score, speed, frame, groundOffset, droneTrail;
@@ -454,12 +420,10 @@
   let currentLevelIndex = parseInt(localStorage.getItem(LEVEL_KEY) || '0', 10);
   if (!(currentLevelIndex >= 0 && currentLevelIndex < LEVELS.length)) currentLevelIndex = 0;
 
-  // 5 Power-up-Typen. Spawnen immer exakt in der Gate-Lücke (garantiert freie Fläche).
+  // 3 Power-up-Typen. Spawnen immer exakt in der Gate-Lücke (garantiert freie Fläche).
   const POWERUP_TYPES = [
     { id: 'shield', icon: '🛡️', color: '120,200,255' },
-    { id: 'slowmo', icon: '🐌', color: '180,220,140' },
     { id: 'shrink', icon: '🔻', color: '255,110,110' },
-    { id: 'feather', icon: '🪶', color: '235,235,235' },
     { id: 'bonus', icon: '⭐', color: '245,197,24' },
   ];
 
@@ -503,7 +467,7 @@
     groundOffset = 0;
     droneTrail = [];
     invulnFrames = 0;
-    activeEffects = { shield: false, slowmoFrames: 0, shrinkFrames: 0, featherFrames: 0 };
+    activeEffects = { shield: false, shrinkFrames: 0 };
     updateEffectsHud();
     scoreLabel.textContent = '0';
   }
@@ -515,13 +479,16 @@
     // dass sich alle sichtbaren Gates schlagartig gleichzeitig verändern.
     const gapH = Math.max(118, 168 - frame * 0.035);
     const gapY = GATE_MARGIN + Math.random() * (BASE_H - GATE_MARGIN * 2 - gapH);
+
     const moving = score >= MOVING_GATE_SCORE && Math.random() < 0.5;
-    // Power-up: nur wenn aktiviert, ~40% der Gates, immer exakt in der Mitte
-    // der eigenen Gate-Lücke platziert -> zwangsläufig auf freier Fläche,
+    const blinking = score >= NIGHT_MODE_SCORE && Math.random() < 0.3;
+    // Power-up: sehr selten (~6% der Gates), immer exakt in der Mitte der
+    // eigenen Gate-Lücke platziert -> zwangsläufig auf freier Fläche,
     // wandert bei beweglichen Gates automatisch mit.
-    const powerup = (frame > 30 && Math.random() < 0.4)
+    const powerup = (frame > 30 && Math.random() < 0.06)
       ? POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
       : null;
+
     gates.push({
       x: BASE_W + 20,
       baseGapY: gapY,
@@ -532,6 +499,8 @@
       moveAmp: 22 + Math.random() * 26,
       moveSpeed: 0.018 + Math.random() * 0.014,
       movePhase: Math.random() * Math.PI * 2,
+      blinking,
+      blinkOffset: Math.random() * 300,
       powerup,
       powerupCollected: false,
     });
@@ -540,19 +509,15 @@
   function updateEffectsHud() {
     const active = [];
     if (activeEffects.shield) active.push('🛡️');
-    if (activeEffects.slowmoFrames > 0) active.push('🐌');
     if (activeEffects.shrinkFrames > 0) active.push('🔻');
-    if (activeEffects.featherFrames > 0) active.push('🪶');
     effectsHud.textContent = active.join(' ');
   }
 
   function applyPowerup(type) {
     switch (type.id) {
       case 'shield': activeEffects.shield = true; break;
-      case 'slowmo': activeEffects.slowmoFrames = 240; break;
       case 'shrink': activeEffects.shrinkFrames = 300; break;
-      case 'feather': activeEffects.featherFrames = 300; break;
-      case 'bonus': score += 5; scoreLabel.textContent = score; break;
+      case 'bonus': score += 1; scoreLabel.textContent = score; break;
     }
     updateEffectsHud();
   }
@@ -606,14 +571,11 @@
     frame++;
 
     if (invulnFrames > 0) invulnFrames--;
-    if (activeEffects.slowmoFrames > 0 && --activeEffects.slowmoFrames === 0) updateEffectsHud();
     if (activeEffects.shrinkFrames > 0 && --activeEffects.shrinkFrames === 0) updateEffectsHud();
-    if (activeEffects.featherFrames > 0 && --activeEffects.featherFrames === 0) updateEffectsHud();
 
-    const gravNow = GRAVITY * (activeEffects.featherFrames > 0 ? 0.45 : 1);
     const rNow = DRONE_R * (activeEffects.shrinkFrames > 0 ? 0.55 : 1);
 
-    drone.vy += gravNow;
+    drone.vy += GRAVITY;
     drone.y += drone.vy;
     drone.rot = Math.max(-0.5, Math.min(1.1, drone.vy / 12));
 
@@ -628,7 +590,6 @@
 
     // Tempo steigt kontinuierlich mit der Spielzeit, nicht in Score-Sprüngen
     speed = Math.min(5.2, 2.6 + frame * 0.0028);
-    if (activeEffects.slowmoFrames > 0) speed *= 0.55;
 
     if (frame % Math.max(58, Math.round(95 - score * 1.2)) === 0) spawnGate();
 
@@ -645,7 +606,7 @@
       if (g.powerup && !g.powerupCollected) {
         const px = g.x + GATE_W / 2, py = g.gapY + g.gapH / 2;
         const dx = DRONE_X - px, dy = drone.y - py;
-        const collectR = rNow + 12;
+        const collectR = rNow + 16;
         if (dx * dx + dy * dy < collectR * collectR) {
           g.powerupCollected = true;
           applyPowerup(g.powerup);
@@ -822,11 +783,21 @@
     }
   }
 
+  function gateBlinkAlpha(g) {
+    if (!g.blinking) return 1;
+    const cycle = 130, visibleFor = 45;
+    const t = (frame + g.blinkOffset) % cycle;
+    return t < visibleFor ? 1 : 0.1;
+  }
+
   function drawGate(g) {
     const topH = g.gapY;
     const botY = g.gapY + g.gapH;
     const botH = BASE_H - botY;
+    const alpha = gateBlinkAlpha(g);
 
+    ctx.save();
+    ctx.globalAlpha = alpha;
     drawGatePanel(g.x, 0, GATE_W, topH);
     drawGatePanel(g.x, botY, GATE_W, botH);
 
@@ -837,6 +808,7 @@
     ctx.fillRect(g.x - 3, topH - 4, GATE_W + 6, 5);
     ctx.fillRect(g.x - 3, botY - 1, GATE_W + 6, 5);
     ctx.shadowBlur = 0;
+    ctx.restore();
   }
 
   // --- Drohne: Carbon-Arme, spinnende Props, LEDs, FPV-Kamera + Antenne, Motion-Trail ---
@@ -852,82 +824,136 @@
       ctx.strokeStyle = `rgba(120,200,255,${0.5 + 0.3 * pulse})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(0, 0, 24, 0, Math.PI * 2);
+      ctx.arc(0, 0, 26, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    const armLen = 19;
-    const armPts = [[-1, -0.55], [1, -0.55], [-1, 0.55], [1, 0.55]];
+    const armLen = 20;
+    // front-right, front-left(rear-ish), rear pair – true stretched-X layout
+    const armPts = [[-1, -0.6], [1, -0.6], [-1, 0.6], [1, 0.6]];
 
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#1c2036';
-    ctx.lineWidth = 4;
+    // --- Carbon-Arme als gefüllte, sich verjüngende Streben ---
     armPts.forEach(([sx, sy]) => {
+      const ex = sx * armLen, ey = sy * armLen;
+      const len = Math.hypot(ex, ey);
+      const ux = ex / len, uy = ey / len;
+      const px = -uy, py = ux;
+      const wHub = 4.4, wTip = 2.3;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(sx * armLen, sy * armLen);
+      ctx.moveTo(px * wHub, py * wHub);
+      ctx.lineTo(ex + px * wTip, ey + py * wTip);
+      ctx.lineTo(ex - px * wTip, ey - py * wTip);
+      ctx.lineTo(-px * wHub, -py * wHub);
+      ctx.closePath();
+      const armGrad = ctx.createLinearGradient(0, 0, ex, ey);
+      armGrad.addColorStop(0, '#262a33');
+      armGrad.addColorStop(1, '#121319');
+      ctx.fillStyle = armGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(245,197,24,0.3)';
+      ctx.lineWidth = 0.7;
       ctx.stroke();
     });
-    ctx.strokeStyle = 'rgba(245,197,24,0.35)';
-    ctx.lineWidth = 1.2;
-    armPts.forEach(([sx, sy]) => {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(sx * armLen, sy * armLen);
-      ctx.stroke();
-    });
 
+    // --- Motoren + Props an jedem Arm-Ende ---
     armPts.forEach(([sx, sy], i) => {
       const mx = sx * armLen, my = sy * armLen;
-      ctx.fillStyle = '#0d0f1c';
-      ctx.beginPath(); ctx.arc(mx, my, 3.2, 0, Math.PI * 2); ctx.fill();
 
+      // Prop-Blur-Scheibe (Bewegungsunschärfe)
+      ctx.beginPath();
+      ctx.arc(mx, my, 10.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(230,230,235,0.08)';
+      ctx.fill();
+
+      // zwei rotierende Blätter
       ctx.save();
       ctx.translate(mx, my);
-      ctx.rotate(spin + i);
-      ctx.fillStyle = 'rgba(237,234,224,0.5)';
+      ctx.rotate(spin + i * 1.3);
+      ctx.fillStyle = 'rgba(232,232,236,0.55)';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 2.8, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 10, 2, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      ctx.strokeStyle = 'rgba(237,234,224,0.12)';
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(mx, my, 10.5, 0, Math.PI * 2); ctx.stroke();
+      // Motor-Glocke, metallisch
+      const motorGrad = ctx.createRadialGradient(mx - 1.2, my - 1.2, 0.5, mx, my, 4.6);
+      motorGrad.addColorStop(0, '#565b66');
+      motorGrad.addColorStop(1, '#101216');
+      ctx.fillStyle = motorGrad;
+      ctx.beginPath(); ctx.arc(mx, my, 4.3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(245,197,24,0.45)';
+      ctx.lineWidth = 0.7;
+      ctx.beginPath(); ctx.arc(mx, my, 4.3, 0, Math.PI * 2); ctx.stroke();
 
+      // Status-LED
       ctx.fillStyle = sx < 0 ? 'rgba(245,197,24,0.9)' : 'rgba(239,68,68,0.85)';
-      ctx.beginPath(); ctx.arc(mx * 0.6, my * 0.6, 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(mx * 0.62, my * 0.62, 1.3, 0, Math.PI * 2); ctx.fill();
     });
 
-    const hubGrad = ctx.createLinearGradient(-12, -8, 12, 8);
-    hubGrad.addColorStop(0, '#f5c518');
-    hubGrad.addColorStop(1, '#c98f00');
-    ctx.fillStyle = hubGrad;
+    // --- Zentrale Top-Plate (achteckig, Carbon) ---
     ctx.beginPath();
-    ctx.moveTo(-12, -8);
-    ctx.lineTo(15, 0);
-    ctx.lineTo(-12, 8);
-    ctx.quadraticCurveTo(-16, 0, -12, -8);
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI / 8 + i * (Math.PI / 4);
+      const px = Math.cos(a) * 9.5, py = Math.sin(a) * 7.5;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
     ctx.closePath();
+    const hubGrad = ctx.createLinearGradient(-9, -7, 9, 7);
+    hubGrad.addColorStop(0, '#2b3038');
+    hubGrad.addColorStop(1, '#15171d');
+    ctx.fillStyle = hubGrad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(8,11,24,0.5)';
+    ctx.strokeStyle = 'rgba(245,197,24,0.55)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    ctx.fillStyle = '#0d0f1c';
-    ctx.beginPath(); ctx.arc(4, 0, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(120,170,255,0.55)';
-    ctx.beginPath(); ctx.arc(3, -1, 1.6, 0, Math.PI * 2); ctx.fill();
+    // --- LiPo-Akku oben drauf, mit Strap ---
+    ctx.save();
+    ctx.translate(-3.5, 0);
+    roundRectPath(-8, -4.5, 13, 9, 2);
+    ctx.fillStyle = '#3c3f47';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(240,140,20,0.85)';
+    ctx.fillRect(-8, -0.9, 13, 1.8);
+    ctx.strokeStyle = 'rgba(10,10,10,0.7)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(-8, -4.5); ctx.lineTo(5, -4.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8, 4.5); ctx.lineTo(5, 4.5); ctx.stroke();
+    ctx.restore();
 
-    ctx.strokeStyle = 'rgba(237,234,224,0.5)';
-    ctx.lineWidth = 1;
+    // --- FPV-Kamera-Pod, leicht angewinkelt an der Nase ---
+    ctx.save();
+    ctx.translate(11, -1);
+    ctx.rotate(-0.18);
+    roundRectPath(-4.5, -3.6, 8.5, 7.2, 1.8);
+    ctx.fillStyle = '#0c0e13';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(245,197,24,0.4)';
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(120,175,255,0.7)';
+    ctx.beginPath(); ctx.arc(2, 0, 2.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.arc(2, 0, 2.3, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+
+    // --- VTX-Antenne, nach hinten-oben ---
+    ctx.strokeStyle = 'rgba(30,32,38,0.9)';
+    ctx.lineWidth = 1.1;
     ctx.beginPath();
-    ctx.moveTo(-10, -6);
-    ctx.quadraticCurveTo(-20, -10, -24, -4);
+    ctx.moveTo(-7, -3.5);
+    ctx.quadraticCurveTo(-17, -13, -21, -5);
     ctx.stroke();
+    ctx.fillStyle = '#14161c';
+    ctx.beginPath(); ctx.arc(-21, -5, 1.2, 0, Math.PI * 2); ctx.fill();
 
     ctx.restore();
   }
+
 
   function drawDrone() {
     const spin = animT * 0.12;
@@ -945,19 +971,22 @@
     const px = g.x + GATE_W / 2;
     const py = g.gapY + g.gapH / 2;
     const pulse = 0.6 + 0.4 * Math.sin(animT * 0.2);
+    const scalePulse = 1 + 0.12 * Math.sin(animT * 0.2);
     ctx.save();
+    ctx.globalAlpha = gateBlinkAlpha(g);
     ctx.translate(px, py);
+    ctx.scale(scalePulse, scalePulse);
     ctx.beginPath();
-    ctx.arc(0, 0, 13, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${g.powerup.color},${(0.16 + 0.14 * pulse).toFixed(2)})`;
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${g.powerup.color},${(0.28 + 0.2 * pulse).toFixed(2)})`;
     ctx.fill();
-    ctx.strokeStyle = `rgba(${g.powerup.color},0.9)`;
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = `rgba(${g.powerup.color},0.7)`;
-    ctx.shadowBlur = 8;
+    ctx.strokeStyle = `rgba(${g.powerup.color},1)`;
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = `rgba(${g.powerup.color},1)`;
+    ctx.shadowBlur = 18;
     ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.font = '15px sans-serif';
+    ctx.font = '22px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(g.powerup.icon, 0, 1);
