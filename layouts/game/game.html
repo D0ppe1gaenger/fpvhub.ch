@@ -811,159 +811,128 @@
     ctx.restore();
   }
 
-  // --- Drohne: Carbon-Arme, spinnende Props, LEDs, FPV-Kamera + Antenne, Motion-Trail ---
-  function drawDroneShape(x, y, rot, alpha, spin, scale, shielded) {
+  // --- Drohne: echtes Foto, freigestellt und in Flugrichtung gedreht ---
+  function drawDroneShape(x, y, rot, alpha, scale) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
     ctx.rotate(rot);
     ctx.scale(scale, scale);
 
-    if (shielded) {
-      const pulse = 0.6 + 0.4 * Math.sin(animT * 0.18);
-      ctx.strokeStyle = `rgba(120,200,255,${0.5 + 0.3 * pulse})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, 26, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    const spin = animT * 0.12;
+    const armLen = 19;
+    const armPts = [[-1, -0.55], [1, -0.55], [-1, 0.55], [1, 0.55]];
 
-    const armLen = 20;
-    // front-right, front-left(rear-ish), rear pair – true stretched-X layout
-    const armPts = [[-1, -0.6], [1, -0.6], [-1, 0.6], [1, 0.6]];
-
-    // --- Carbon-Arme als gefüllte, sich verjüngende Streben ---
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1c2036';
+    ctx.lineWidth = 4;
     armPts.forEach(([sx, sy]) => {
-      const ex = sx * armLen, ey = sy * armLen;
-      const len = Math.hypot(ex, ey);
-      const ux = ex / len, uy = ey / len;
-      const px = -uy, py = ux;
-      const wHub = 4.4, wTip = 2.3;
       ctx.beginPath();
-      ctx.moveTo(px * wHub, py * wHub);
-      ctx.lineTo(ex + px * wTip, ey + py * wTip);
-      ctx.lineTo(ex - px * wTip, ey - py * wTip);
-      ctx.lineTo(-px * wHub, -py * wHub);
-      ctx.closePath();
-      const armGrad = ctx.createLinearGradient(0, 0, ex, ey);
-      armGrad.addColorStop(0, '#262a33');
-      armGrad.addColorStop(1, '#121319');
-      ctx.fillStyle = armGrad;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(245,197,24,0.3)';
-      ctx.lineWidth = 0.7;
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sx * armLen, sy * armLen);
+      ctx.stroke();
+    });
+    ctx.strokeStyle = 'rgba(245,197,24,0.35)';
+    ctx.lineWidth = 1.2;
+    armPts.forEach(([sx, sy]) => {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sx * armLen, sy * armLen);
       ctx.stroke();
     });
 
-    // --- Motoren + Props an jedem Arm-Ende ---
     armPts.forEach(([sx, sy], i) => {
       const mx = sx * armLen, my = sy * armLen;
+      ctx.fillStyle = '#0d0f1c';
+      ctx.beginPath(); ctx.arc(mx, my, 3.2, 0, Math.PI * 2); ctx.fill();
 
-      // Prop-Blur-Scheibe (Bewegungsunschärfe)
-      ctx.beginPath();
-      ctx.arc(mx, my, 10.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(230,230,235,0.08)';
-      ctx.fill();
-
-      // zwei rotierende Blätter
       ctx.save();
       ctx.translate(mx, my);
-      ctx.rotate(spin + i * 1.3);
-      ctx.fillStyle = 'rgba(232,232,236,0.55)';
+      ctx.rotate(spin + i);
+      ctx.fillStyle = 'rgba(237,234,224,0.5)';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 10, 2.8, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // Motor-Glocke, metallisch
-      const motorGrad = ctx.createRadialGradient(mx - 1.2, my - 1.2, 0.5, mx, my, 4.6);
-      motorGrad.addColorStop(0, '#565b66');
-      motorGrad.addColorStop(1, '#101216');
-      ctx.fillStyle = motorGrad;
-      ctx.beginPath(); ctx.arc(mx, my, 4.3, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = 'rgba(245,197,24,0.45)';
-      ctx.lineWidth = 0.7;
-      ctx.beginPath(); ctx.arc(mx, my, 4.3, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(237,234,224,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(mx, my, 10.5, 0, Math.PI * 2); ctx.stroke();
 
-      // Status-LED
       ctx.fillStyle = sx < 0 ? 'rgba(245,197,24,0.9)' : 'rgba(239,68,68,0.85)';
-      ctx.beginPath(); ctx.arc(mx * 0.62, my * 0.62, 1.3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(mx * 0.6, my * 0.6, 1.4, 0, Math.PI * 2); ctx.fill();
     });
 
-    // --- Zentrale Top-Plate (achteckig, Carbon) ---
+    // Rumpf: abgerundete, leicht spitz zulaufende Fuselage statt Dreieck
     ctx.beginPath();
-    for (let i = 0; i < 8; i++) {
-      const a = Math.PI / 8 + i * (Math.PI / 4);
-      const px = Math.cos(a) * 9.5, py = Math.sin(a) * 7.5;
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
+    ctx.moveTo(-13, -6.5);
+    ctx.lineTo(6, -7.5);
+    ctx.quadraticCurveTo(15, -4, 17, 0);
+    ctx.quadraticCurveTo(15, 4, 6, 7.5);
+    ctx.lineTo(-13, 6.5);
+    ctx.quadraticCurveTo(-17, 0, -13, -6.5);
     ctx.closePath();
-    const hubGrad = ctx.createLinearGradient(-9, -7, 9, 7);
-    hubGrad.addColorStop(0, '#2b3038');
-    hubGrad.addColorStop(1, '#15171d');
+    const hubGrad = ctx.createLinearGradient(-13, -7, 17, 7);
+    hubGrad.addColorStop(0, '#c98f00');
+    hubGrad.addColorStop(0.5, '#f5c518');
+    hubGrad.addColorStop(1, '#e0ac0e');
     ctx.fillStyle = hubGrad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(245,197,24,0.55)';
+    ctx.strokeStyle = 'rgba(8,11,24,0.5)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // --- LiPo-Akku oben drauf, mit Strap ---
-    ctx.save();
-    ctx.translate(-3.5, 0);
-    roundRectPath(-8, -4.5, 13, 9, 2);
-    ctx.fillStyle = '#3c3f47';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(240,140,20,0.85)';
-    ctx.fillRect(-8, -0.9, 13, 1.8);
-    ctx.strokeStyle = 'rgba(10,10,10,0.7)';
-    ctx.lineWidth = 1.1;
-    ctx.beginPath(); ctx.moveTo(-8, -4.5); ctx.lineTo(5, -4.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-8, 4.5); ctx.lineTo(5, 4.5); ctx.stroke();
-    ctx.restore();
-
-    // --- FPV-Kamera-Pod, leicht angewinkelt an der Nase ---
-    ctx.save();
-    ctx.translate(11, -1);
-    ctx.rotate(-0.18);
-    roundRectPath(-4.5, -3.6, 8.5, 7.2, 1.8);
-    ctx.fillStyle = '#0c0e13';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(245,197,24,0.4)';
-    ctx.lineWidth = 0.7;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(120,175,255,0.7)';
-    ctx.beginPath(); ctx.arc(2, 0, 2.3, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.arc(2, 0, 2.3, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-
-    // --- VTX-Antenne, nach hinten-oben ---
-    ctx.strokeStyle = 'rgba(30,32,38,0.9)';
-    ctx.lineWidth = 1.1;
+    // sanfter Glanzstreifen oben für etwas Volumen
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(-7, -3.5);
-    ctx.quadraticCurveTo(-17, -13, -21, -5);
+    ctx.moveTo(-9, -4.5);
+    ctx.quadraticCurveTo(2, -5.2, 12, -2.6);
     ctx.stroke();
-    ctx.fillStyle = '#14161c';
-    ctx.beginPath(); ctx.arc(-21, -5, 1.2, 0, Math.PI * 2); ctx.fill();
+
+    // kleine Standoff-Schrauben
+    ctx.fillStyle = 'rgba(8,11,24,0.55)';
+    [[-8, -3.5], [-8, 3.5], [2, -4.2], [2, 4.2]].forEach(([bx, by]) => {
+      ctx.beginPath(); ctx.arc(bx, by, 1, 0, Math.PI * 2); ctx.fill();
+    });
+
+    ctx.fillStyle = '#0d0f1c';
+    ctx.beginPath(); ctx.arc(13.5, 0, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(120,170,255,0.55)';
+    ctx.beginPath(); ctx.arc(12.5, -1, 1.6, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(237,234,224,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-10, -6);
+    ctx.quadraticCurveTo(-20, -10, -24, -4);
+    ctx.stroke();
 
     ctx.restore();
   }
 
+  function drawShieldRing(x, y, scale) {
+    const pulse = 0.6 + 0.4 * Math.sin(animT * 0.18);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = `rgba(120,200,255,${0.5 + 0.3 * pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 28, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   function drawDrone() {
-    const spin = animT * 0.12;
     const scaleNow = activeEffects.shrinkFrames > 0 ? 0.55 : 1;
     const flicker = invulnFrames > 0 && Math.floor(animT / 4) % 2 === 0 ? 0.35 : 1;
     droneTrail.forEach((t, i) => {
       const alpha = 0.09 * (i + 1) / droneTrail.length;
-      drawDroneShape(DRONE_X - (droneTrail.length - i) * 6, t.y, t.rot, alpha, spin, scaleNow, false);
+      drawDroneShape(DRONE_X - (droneTrail.length - i) * 6, t.y, t.rot, alpha, scaleNow);
     });
-    drawDroneShape(DRONE_X, drone.y, drone.rot, flicker, spin, scaleNow, activeEffects.shield);
+    if (activeEffects.shield) drawShieldRing(DRONE_X, drone.y, scaleNow);
+    drawDroneShape(DRONE_X, drone.y, drone.rot, flicker, scaleNow);
   }
 
   function drawPowerupBadge(g) {
