@@ -1,0 +1,638 @@
+{{/*
+  layouts/game/game.html
+  Mini-Game "Gate Rush" – Flappy-Bird-Mechanik mit FPV-Drohne & Racing-Gates.
+  Folgt dem bestehenden Design-System (page-hero, eyebrow, btn-primary).
+*/}}
+
+{{ define "styles" }}
+<style>
+  .page-hero { padding: 4rem 0 2rem; text-align: center; }
+  .eyebrow { font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--o); margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
+  .eyebrow::before, .eyebrow::after { content:''; flex:0 0 40px; height:1px; background:var(--bdr); }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.01em; margin-bottom: 0.9rem; }
+  h1 span { color: var(--g); }
+  .page-sub { font-size: 1rem; line-height: 1.75; color: var(--fm); font-weight: 300; max-width: 46ch; margin: 0 auto; }
+
+  .game-wrap { display: flex; justify-content: center; padding: 1.5rem 0 3rem; }
+  .game-stage {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 2 / 3;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--bdrh);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+    background: var(--n1);
+    touch-action: none;
+    user-select: none;
+  }
+  #gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .game-hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    padding: 0.9rem 1.1rem;
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1.1rem; color: var(--fg);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    pointer-events: none;
+    z-index: 3;
+  }
+  .game-hud .best { color: var(--g); font-size: 0.8rem; font-weight: 600; align-self: flex-start; margin-top: 0.15rem; }
+
+  .game-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 2rem;
+    background: rgba(8,11,24,0.72);
+    backdrop-filter: blur(3px);
+    z-index: 4;
+  }
+  .game-overlay.hidden { display: none; }
+  .game-overlay h2 { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--fg); }
+  .game-overlay h2 span { color: var(--g); }
+  .game-overlay p { font-size: 0.88rem; color: var(--fm); line-height: 1.6; max-width: 30ch; }
+  .game-overlay .score-line { font-size: 0.95rem; color: var(--fg); font-weight: 600; }
+  .game-overlay .score-line b { color: var(--g); }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem; font-weight: 600; color: var(--n3);
+    background: var(--g); padding: 0.8rem 1.8rem; border-radius: 0.5rem;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover { background: var(--o); transform: translateY(-1px); }
+
+  .game-hint {
+    max-width: 420px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--fd);
+    margin-top: 0.9rem;
+  }
+
+  .name-input {
+    width: 100%;
+    max-width: 260px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    color: var(--fg);
+    background: var(--n2);
+    border: 1px solid var(--bdr);
+    border-radius: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .name-input:focus { border-color: var(--bdrh); }
+  .name-input::placeholder { color: var(--fd); }
+
+  .submit-status { font-size: 0.8rem; color: var(--g); min-height: 1.2em; font-weight: 600; }
+
+  .leaderboard-wrap { max-width: 420px; margin: 0 auto 4rem; padding: 0 1rem; }
+  .leaderboard-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; text-align: center; }
+  .leaderboard-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .leaderboard-list li {
+    display: flex; align-items: center; gap: 0.75rem;
+    background: var(--n1); border: 1px solid var(--bdr);
+    border-radius: 0.6rem; padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+  }
+  .leaderboard-list .rank { font-family: 'Syne', sans-serif; font-weight: 800; color: var(--g); width: 1.6rem; flex-shrink: 0; }
+  .leaderboard-list .lb-name { flex: 1; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leaderboard-list .lb-score { font-weight: 700; color: var(--fg); }
+  .leaderboard-list .leaderboard-empty { justify-content: center; color: var(--fd); }
+</style>
+{{ end }}
+
+{{ define "main" }}
+<div class="page-hero">
+  <div class="eyebrow">Nur zum Spass</div>
+  <h1>Gate <span>Rush</span></h1>
+  <p class="page-sub">Flieg deine Drohne durch so viele Racing-Gates wie möglich. Tippen / Klicken / Leertaste = hoch.</p>
+</div>
+
+<div class="game-wrap">
+  <div class="game-stage" id="gameStage">
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-hud">
+      <span id="scoreLabel">0</span>
+      <span class="best">Best: <span id="bestLabel">0</span></span>
+    </div>
+    <div class="game-overlay" id="startOverlay">
+      <h2>Gate <span>Rush</span></h2>
+      <p>Tippen, klicken oder Leertaste drücken um zu starten. Halte deine Drohne zwischen den Gates.</p>
+      <input type="text" id="nameInput" class="name-input" placeholder="Dein Name für die Bestenliste" maxlength="20">
+      <button class="btn-primary" id="startBtn">Starten →</button>
+    </div>
+    <div class="game-overlay hidden" id="overOverlay">
+      <h2>Crash! 💥</h2>
+      <p class="score-line">Score: <b id="finalScore">0</b> &nbsp;·&nbsp; Best: <b id="finalBest">0</b></p>
+      <p class="submit-status" id="submitStatus"></p>
+      <button class="btn-primary" id="retryBtn">Nochmal →</button>
+    </div>
+  </div>
+</div>
+<p class="game-hint">Dein Highscore wird lokal in diesem Browser gespeichert. Schaffst du es unter die Top 10, landet dein Score auf der <b>#Gate Rush</b> Bestenliste in unserem Discord.</p>
+
+<div class="leaderboard-wrap">
+  <h3 class="leaderboard-title">🏆 Top 10</h3>
+  <ol class="leaderboard-list" id="leaderboardList">
+    <li class="leaderboard-empty">Lade Bestenliste …</li>
+  </ol>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+(function() {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('gameStage');
+  const scoreLabel = document.getElementById('scoreLabel');
+  const bestLabel = document.getElementById('bestLabel');
+  const finalScore = document.getElementById('finalScore');
+  const finalBest = document.getElementById('finalBest');
+  const startOverlay = document.getElementById('startOverlay');
+  const overOverlay = document.getElementById('overOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const nameInput = document.getElementById('nameInput');
+  const submitStatus = document.getElementById('submitStatus');
+  const leaderboardList = document.getElementById('leaderboardList');
+
+  const BOT_API = 'https://fpvhub-bot-production.up.railway.app';
+  const NAME_KEY = 'fpvhub_gate_rush_name';
+  nameInput.value = localStorage.getItem(NAME_KEY) || '';
+  nameInput.addEventListener('change', () => localStorage.setItem(NAME_KEY, nameInput.value.trim().slice(0, 20)));
+
+  function renderLeaderboard(top10) {
+    if (!top10 || !top10.length) {
+      leaderboardList.innerHTML = '<li class="leaderboard-empty">Noch keine Einträge – sei die/der Erste!</li>';
+      return;
+    }
+    const medals = ['🥇', '🥈', '🥉'];
+    leaderboardList.innerHTML = top10.map((r, i) => `
+      <li>
+        <span class="rank">${medals[i] || (i + 1)}</span>
+        <span class="lb-name">${escapeHtml(r.name)}</span>
+        <span class="lb-score">${r.score}</span>
+      </li>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function loadLeaderboard() {
+    fetch(BOT_API + '/api/game/leaderboard')
+      .then(r => r.json())
+      .then(data => renderLeaderboard(data.top10))
+      .catch(() => { leaderboardList.innerHTML = '<li class="leaderboard-empty">Bestenliste aktuell nicht erreichbar.</li>'; });
+  }
+  loadLeaderboard();
+
+  function submitScore(finalScoreValue) {
+    const name = (nameInput.value.trim() || 'Anonym').slice(0, 20);
+    submitStatus.textContent = 'Score wird gespeichert …';
+    fetch(BOT_API + '/api/game/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score: finalScoreValue }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) { submitStatus.textContent = ''; return; }
+        submitStatus.textContent = data.madeTop10
+          ? `🏆 Neuer Top-10-Platz (#${data.rank})!`
+          : 'Score gespeichert.';
+        if (data.top10) renderLeaderboard(data.top10);
+      })
+      .catch(() => { submitStatus.textContent = ''; });
+  }
+
+  const BASE_W = 400, BASE_H = 600;
+  let scale = 1;
+
+  function resize() {
+    const rect = stage.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    scale = rect.width / BASE_W;
+    canvas.width = BASE_W * dpr;
+    canvas.height = BASE_H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+
+  const BEST_KEY = 'fpvhub_gate_rush_best';
+  let best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+  bestLabel.textContent = best;
+
+  const GRAVITY = 0.42;
+  const FLAP = -7.6;
+  const GATE_W = 54;
+  const GATE_MARGIN = 60;
+  const DRONE_X = 100;
+  const DRONE_R = 15;
+  const MOVING_GATE_SCORE = 6; // ab diesem Score können Gates auch vertikal wandern
+
+  let state = 'ready'; // ready | playing | over
+  let drone, gates, score, speed, frame, groundOffset, droneTrail;
+  let animT = 0; // läuft immer weiter, unabhängig vom Spielstatus (für Ambient-Animationen)
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  // Statische Szenerie – einmal generiert, dann nur parallax-verschoben
+  const STARS = Array.from({ length: 55 }, () => ({
+    x: Math.random() * BASE_W,
+    y: Math.random() * BASE_H * 0.5,
+    r: 0.6 + Math.random() * 1.3,
+    seed: Math.random() * Math.PI * 2,
+  }));
+  const CLOUDS = Array.from({ length: 5 }, (_, i) => ({
+    x: (i / 5) * (BASE_W + 140),
+    y: 36 + Math.random() * 90,
+    scale: 0.7 + Math.random() * 0.8,
+    speed: 0.14 + Math.random() * 0.1,
+  }));
+
+  function reset() {
+    drone = { y: BASE_H / 2, vy: 0, rot: 0 };
+    gates = [];
+    score = 0;
+    speed = 2.6;
+    frame = 0;
+    groundOffset = 0;
+    droneTrail = [];
+    scoreLabel.textContent = '0';
+  }
+  reset();
+
+  function spawnGate() {
+    // Gap-Grösse hängt kontinuierlich von der Spielzeit ab (nicht vom Score),
+    // dadurch ist jedes neue Gate nur minimal enger als das vorherige statt
+    // dass sich alle sichtbaren Gates schlagartig gleichzeitig verändern.
+    const gapH = Math.max(118, 168 - frame * 0.035);
+    const gapY = GATE_MARGIN + Math.random() * (BASE_H - GATE_MARGIN * 2 - gapH);
+    const moving = score >= MOVING_GATE_SCORE && Math.random() < 0.5;
+    gates.push({
+      x: BASE_W + 20,
+      baseGapY: gapY,
+      gapY,
+      gapH,
+      passed: false,
+      moving,
+      moveAmp: 22 + Math.random() * 26,
+      moveSpeed: 0.018 + Math.random() * 0.014,
+      movePhase: Math.random() * Math.PI * 2,
+    });
+  }
+
+  function flap() {
+    if (state === 'ready') { startGame(); return; }
+    if (state === 'over') return;
+    drone.vy = FLAP;
+  }
+
+  function startGame() {
+    reset();
+    state = 'playing';
+    startOverlay.classList.add('hidden');
+    overOverlay.classList.add('hidden');
+    submitStatus.textContent = '';
+    nameInput.blur();
+    spawnGate();
+  }
+
+  function endGame() {
+    state = 'over';
+    if (score > best) { best = score; localStorage.setItem(BEST_KEY, String(best)); }
+    finalScore.textContent = score;
+    finalBest.textContent = best;
+    bestLabel.textContent = best;
+    overOverlay.classList.remove('hidden');
+    submitScore(score);
+  }
+
+  function update() {
+    if (state !== 'playing') return;
+    frame++;
+    drone.vy += GRAVITY;
+    drone.y += drone.vy;
+    drone.rot = Math.max(-0.5, Math.min(1.1, drone.vy / 12));
+
+    if (frame % 2 === 0) {
+      droneTrail.push({ y: drone.y, rot: drone.rot });
+      if (droneTrail.length > 5) droneTrail.shift();
+    }
+
+    if (drone.y - DRONE_R < 0 || drone.y + DRONE_R > BASE_H) { endGame(); return; }
+
+    // Tempo steigt kontinuierlich mit der Spielzeit, nicht in Score-Sprüngen
+    speed = Math.min(5.2, 2.6 + frame * 0.0028);
+
+    if (frame % Math.max(58, Math.round(95 - score * 1.2)) === 0) spawnGate();
+
+    for (const g of gates) {
+      g.x -= speed;
+      if (g.moving) {
+        g.gapY = clamp(
+          g.baseGapY + Math.sin(frame * g.moveSpeed + g.movePhase) * g.moveAmp,
+          GATE_MARGIN,
+          BASE_H - GATE_MARGIN - g.gapH
+        );
+      }
+      const withinX = DRONE_X + DRONE_R > g.x && DRONE_X - DRONE_R < g.x + GATE_W;
+      if (withinX) {
+        if (drone.y - DRONE_R < g.gapY || drone.y + DRONE_R > g.gapY + g.gapH) { endGame(); return; }
+      }
+      if (!g.passed && g.x + GATE_W < DRONE_X - DRONE_R) {
+        g.passed = true;
+        score++;
+        scoreLabel.textContent = score;
+      }
+    }
+    gates = gates.filter(g => g.x > -GATE_W - 20);
+  }
+
+  // --- Hintergrund: Sternenhimmel, Sonnen-Glow, Wolken, Parallax-Bergketten, Boden mit Leuchtstreifen ---
+  function drawRidge(heightFactor, base, offset, amp, k1, k2, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, BASE_H);
+    const topY = BASE_H * (1 - heightFactor) - base;
+    for (let x = 0; x <= BASE_W; x += 12) {
+      const y = topY
+        - amp * Math.sin(((x + offset) / BASE_W) * Math.PI * 2 * k1)
+        - amp * 0.5 * Math.sin(((x + offset) / BASE_W) * Math.PI * 2 * k2 + 1.3);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(BASE_W, BASE_H);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawBackground() {
+    const sky = ctx.createLinearGradient(0, 0, 0, BASE_H);
+    sky.addColorStop(0, '#0a0d1c');
+    sky.addColorStop(0.55, '#131735');
+    sky.addColorStop(1, '#1a2044');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, BASE_W, BASE_H);
+
+    // sanftes Sonnen-/Mond-Glühen
+    const glow = ctx.createRadialGradient(BASE_W * 0.76, BASE_H * 0.16, 0, BASE_W * 0.76, BASE_H * 0.16, 140);
+    glow.addColorStop(0, 'rgba(245,197,24,0.22)');
+    glow.addColorStop(1, 'rgba(245,197,24,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, BASE_W, BASE_H * 0.55);
+
+    // funkelnde Sterne
+    for (const s of STARS) {
+      const tw = 0.5 + 0.5 * Math.sin(animT * 0.03 + s.seed);
+      ctx.fillStyle = `rgba(237,234,224,${(0.12 + 0.45 * tw).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // treibende Wolken
+    ctx.fillStyle = 'rgba(237,234,224,0.05)';
+    for (const c of CLOUDS) {
+      const span = BASE_W + 140;
+      const cx = (((c.x - animT * c.speed) % span) + span) % span - 70;
+      ctx.beginPath();
+      ctx.ellipse(cx, c.y, 34 * c.scale, 12 * c.scale, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + 24 * c.scale, c.y + 4, 22 * c.scale, 9 * c.scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Bergketten, zwei Parallax-Ebenen
+    drawRidge(0.20, 40, animT * 0.15, 22, 2, 3, 'rgba(245,197,24,0.045)');
+    drawRidge(0.30, 60, animT * 0.35, 30, 3, 5, 'rgba(245,197,24,0.08)');
+
+    // Boden
+    const groundTop = BASE_H - 34;
+    const groundGrad = ctx.createLinearGradient(0, groundTop, 0, BASE_H);
+    groundGrad.addColorStop(0, '#11142a');
+    groundGrad.addColorStop(1, '#080a16');
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, groundTop, BASE_W, BASE_H - groundTop);
+
+    // leuchtende Horizontlinie
+    ctx.fillStyle = 'rgba(245,197,24,0.55)';
+    ctx.shadowColor = 'rgba(245,197,24,0.6)';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(0, groundTop, BASE_W, 2);
+    ctx.shadowBlur = 0;
+
+    // scrollende Distanz-Markierungen
+    ctx.strokeStyle = 'rgba(245,197,24,0.2)';
+    ctx.lineWidth = 2;
+    const tickSpacing = 40;
+    let tx = -(groundOffset % tickSpacing);
+    while (tx < BASE_W) {
+      ctx.beginPath();
+      ctx.moveTo(tx, groundTop + 9);
+      ctx.lineTo(tx + 16, groundTop + 9);
+      ctx.stroke();
+      tx += tickSpacing;
+    }
+  }
+
+  // --- Gates: hohle Renn-Gate-Panels mit Gitterstruktur, Bolzen und pulsierender LED-Kante ---
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, Math.abs(h) / 2 || r);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function drawGatePanel(x, y, w, h) {
+    if (h <= 2) return;
+    roundRectPath(x, y, w, h, 6);
+    ctx.fillStyle = 'rgba(15,19,38,0.92)';
+    ctx.fill();
+
+    ctx.save();
+    roundRectPath(x, y, w, h, 6);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(245,197,24,0.12)';
+    ctx.lineWidth = 2;
+    for (let ly = -h; ly < h + w; ly += 24) {
+      ctx.beginPath();
+      ctx.moveTo(x, y + ly);
+      ctx.lineTo(x + w, y + ly - w);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    const frameGrad = ctx.createLinearGradient(x, y, x + w, y);
+    frameGrad.addColorStop(0, '#a0700a');
+    frameGrad.addColorStop(0.5, '#f5c518');
+    frameGrad.addColorStop(1, '#a0700a');
+    roundRectPath(x + 2, y + 2, w - 4, h - 4, 5);
+    ctx.strokeStyle = frameGrad;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#f5c518';
+    const corners = [[x + 7, y + 7], [x + w - 7, y + 7], [x + 7, y + h - 7], [x + w - 7, y + h - 7]];
+    for (const [cx, cy] of corners) {
+      if (cy - y > 6 && (y + h) - cy > 6) {
+        ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
+  function drawGate(g) {
+    const topH = g.gapY;
+    const botY = g.gapY + g.gapH;
+    const botH = BASE_H - botY;
+
+    drawGatePanel(g.x, 0, GATE_W, topH);
+    drawGatePanel(g.x, botY, GATE_W, botH);
+
+    const pulse = 0.55 + 0.45 * Math.sin(animT * 0.15);
+    ctx.fillStyle = `rgba(245,197,24,${(0.55 + 0.35 * pulse).toFixed(2)})`;
+    ctx.shadowColor = 'rgba(245,197,24,0.9)';
+    ctx.shadowBlur = 14;
+    ctx.fillRect(g.x - 3, topH - 4, GATE_W + 6, 5);
+    ctx.fillRect(g.x - 3, botY - 1, GATE_W + 6, 5);
+    ctx.shadowBlur = 0;
+  }
+
+  // --- Drohne: Carbon-Arme, spinnende Props, LEDs, FPV-Kamera + Antenne, Motion-Trail ---
+  function drawDroneShape(x, y, rot, alpha, spin) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+
+    const armLen = 19;
+    const armPts = [[-1, -0.55], [1, -0.55], [-1, 0.55], [1, 0.55]];
+
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1c2036';
+    ctx.lineWidth = 4;
+    armPts.forEach(([sx, sy]) => {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sx * armLen, sy * armLen);
+      ctx.stroke();
+    });
+    ctx.strokeStyle = 'rgba(245,197,24,0.35)';
+    ctx.lineWidth = 1.2;
+    armPts.forEach(([sx, sy]) => {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sx * armLen, sy * armLen);
+      ctx.stroke();
+    });
+
+    armPts.forEach(([sx, sy], i) => {
+      const mx = sx * armLen, my = sy * armLen;
+      ctx.fillStyle = '#0d0f1c';
+      ctx.beginPath(); ctx.arc(mx, my, 3.2, 0, Math.PI * 2); ctx.fill();
+
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(spin + i);
+      ctx.fillStyle = 'rgba(237,234,224,0.5)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 2.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.strokeStyle = 'rgba(237,234,224,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(mx, my, 10.5, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.fillStyle = sx < 0 ? 'rgba(245,197,24,0.9)' : 'rgba(239,68,68,0.85)';
+      ctx.beginPath(); ctx.arc(mx * 0.6, my * 0.6, 1.4, 0, Math.PI * 2); ctx.fill();
+    });
+
+    const hubGrad = ctx.createLinearGradient(-12, -8, 12, 8);
+    hubGrad.addColorStop(0, '#f5c518');
+    hubGrad.addColorStop(1, '#c98f00');
+    ctx.fillStyle = hubGrad;
+    ctx.beginPath();
+    ctx.moveTo(-12, -8);
+    ctx.lineTo(15, 0);
+    ctx.lineTo(-12, 8);
+    ctx.quadraticCurveTo(-16, 0, -12, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(8,11,24,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#0d0f1c';
+    ctx.beginPath(); ctx.arc(4, 0, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(120,170,255,0.55)';
+    ctx.beginPath(); ctx.arc(3, -1, 1.6, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(237,234,224,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-10, -6);
+    ctx.quadraticCurveTo(-20, -10, -24, -4);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawDrone() {
+    const spin = animT * 0.12;
+    droneTrail.forEach((t, i) => {
+      const alpha = 0.09 * (i + 1) / droneTrail.length;
+      drawDroneShape(DRONE_X - (droneTrail.length - i) * 6, t.y, t.rot, alpha, spin);
+    });
+    drawDroneShape(DRONE_X, drone.y, drone.rot, 1, spin);
+  }
+
+  function draw() {
+    drawBackground();
+    for (const g of gates) drawGate(g);
+    drawDrone();
+  }
+
+  function loop() {
+    if (state === 'playing') {
+      animT++;
+      groundOffset += speed;
+    }
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); flap(); });
+  stage.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  window.addEventListener('keydown', (e) => {
+    if (document.activeElement === nameInput) return;
+    if (e.code === 'Space') { e.preventDefault(); flap(); }
+  });
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+
+  resize();
+  draw();
+  loop();
+})();
+</script>
+{{ end }}
