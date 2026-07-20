@@ -97,6 +97,46 @@
   .name-capture { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
   .name-capture.hidden { display: none; }
 
+  .level-badge {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.7rem; font-weight: 600;
+    color: var(--fm);
+    background: rgba(8,11,24,0.4);
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 300px;
+  }
+  .level-card {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+    border: 1px solid var(--bdr);
+    border-radius: 0.7rem;
+    padding: 0.8rem 0.5rem;
+    cursor: pointer;
+    background: var(--n2);
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .level-card:hover { border-color: var(--bdrh); transform: translateY(-2px); }
+  .level-card .level-icon { font-size: 1.5rem; }
+  .level-card .level-name { font-size: 0.72rem; font-weight: 600; color: var(--fg); text-align: center; }
+  .level-card .level-swatch { width: 100%; height: 6px; border-radius: 999px; }
+
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem; font-weight: 600; color: var(--fd);
+    background: transparent; border: none; cursor: pointer;
+    text-decoration: underline; padding: 0.2rem;
+  }
+  .btn-ghost:hover { color: var(--fg); }
+
   .submit-status { font-size: 0.8rem; color: var(--g); min-height: 1.2em; font-weight: 600; }
 
   .leaderboard-wrap { max-width: 420px; margin: 0 auto 4rem; padding: 0 1rem; }
@@ -127,31 +167,33 @@
     <canvas id="gameCanvas"></canvas>
     <div class="game-hud">
       <span id="scoreLabel">0</span>
+      <span class="level-badge" id="levelBadge"></span>
       <span class="best">Best: <span id="bestLabel">0</span></span>
     </div>
     <div class="game-overlay" id="startOverlay">
       <h2>Gate <span>Rush</span></h2>
-      <p>Tippen, klicken oder Leertaste drücken um zu starten. Halte deine Drohne zwischen den Gates.</p>
-      <button class="btn-primary" id="startBtn">Starten →</button>
+      <p>Wähle ein Level, dann tippen / klicken / Leertaste zum Fliegen.</p>
+      <div class="level-grid" id="levelGrid"></div>
     </div>
     <div class="game-overlay hidden" id="overOverlay">
       <h2>Crash! 💥</h2>
-      <p class="score-line">Score: <b id="finalScore">0</b> &nbsp;·&nbsp; Best: <b id="finalBest">0</b></p>
+      <p class="score-line">Score: <b id="finalScore">0</b> - Best: <b id="finalBest">0</b></p>
       <p class="submit-status" id="submitStatus"></p>
       <div class="name-capture hidden" id="nameCapture">
         <input type="text" id="topNameInput" class="name-input" placeholder="Dein Name für die Bestenliste" maxlength="20">
         <button class="btn-primary" id="saveNameBtn">Speichern →</button>
       </div>
       <button class="btn-primary" id="retryBtn">Nochmal →</button>
+      <button class="btn-ghost" id="changeLevelBtn">Level wechseln</button>
     </div>
   </div>
 </div>
-<p class="game-hint">Schaffst du es unter die Top 10, fragen wir dich einmalig nach deinem Namen — danach merkt sich dein Gerät ihn. Dein Score landet dann auf der <b>#Gate Rush</b> Bestenliste in unserem Discord.</p>
+<p class="game-hint">Schaffst du es unter die Top 10, fragen wir dich einmalig nach deinem Namen - danach merkt sich dein Gerät ihn. Dein Score landet dann auf der <b>#Gate Rush</b> Bestenliste in unserem Discord.</p>
 
 <div class="leaderboard-wrap">
   <h3 class="leaderboard-title">🏆 Top 10</h3>
   <ol class="leaderboard-list" id="leaderboardList">
-    <li class="leaderboard-empty">Lade Bestenliste …</li>
+    <li class="leaderboard-empty">Lade Bestenliste...</li>
   </ol>
 </div>
 {{ end }}
@@ -168,7 +210,9 @@
   const finalBest = document.getElementById('finalBest');
   const startOverlay = document.getElementById('startOverlay');
   const overOverlay = document.getElementById('overOverlay');
-  const startBtn = document.getElementById('startBtn');
+  const levelGrid = document.getElementById('levelGrid');
+  const levelBadge = document.getElementById('levelBadge');
+  const changeLevelBtn = document.getElementById('changeLevelBtn');
   const retryBtn = document.getElementById('retryBtn');
   const submitStatus = document.getElementById('submitStatus');
   const leaderboardList = document.getElementById('leaderboardList');
@@ -178,6 +222,7 @@
 
   const BOT_API = 'https://fpvhub-bot-production.up.railway.app';
   const NAME_KEY = 'fpvhub_gate_rush_name';
+  const LEVEL_KEY = 'fpvhub_gate_rush_level';
   let cachedTop10 = [];
   let pendingScore = null;
 
@@ -189,7 +234,7 @@
   function renderLeaderboard(top10) {
     cachedTop10 = top10 || [];
     if (!cachedTop10.length) {
-      leaderboardList.innerHTML = '<li class="leaderboard-empty">Noch keine Einträge – sei die/der Erste!</li>';
+      leaderboardList.innerHTML = '<li class="leaderboard-empty">Noch keine Einträge - sei die/der Erste!</li>';
       return;
     }
     const medals = ['🥇', '🥈', '🥉'];
@@ -243,7 +288,7 @@
   });
 
   function submitScore(finalScoreValue, name) {
-    submitStatus.textContent = 'Score wird gespeichert …';
+    submitStatus.textContent = 'Score wird gespeichert...';
     fetch(BOT_API + '/api/game/score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -294,8 +339,15 @@
   // Statische Szenerie – einmal generiert, dann nur parallax-verschoben
   const STARS = Array.from({ length: 55 }, () => ({
     x: Math.random() * BASE_W,
-    y: Math.random() * BASE_H * 0.5,
+    y: Math.random() * BASE_H * 0.6,
     r: 0.6 + Math.random() * 1.3,
+    seed: Math.random() * Math.PI * 2,
+  }));
+  const SNOW = Array.from({ length: 40 }, () => ({
+    x: Math.random() * BASE_W,
+    y: Math.random() * BASE_H,
+    r: 1 + Math.random() * 1.8,
+    fall: 0.4 + Math.random() * 0.7,
     seed: Math.random() * Math.PI * 2,
   }));
   const CLOUDS = Array.from({ length: 5 }, (_, i) => ({
@@ -304,6 +356,84 @@
     scale: 0.7 + Math.random() * 0.8,
     speed: 0.14 + Math.random() * 0.1,
   }));
+
+  // 5 optisch unterschiedliche Level – Gates/Drohne bleiben gleich, nur die Umgebung ändert sich
+  const LEVELS = [
+    {
+      id: 'dusk', name: 'Dämmerung', icon: '🌆',
+      sky: ['#0a0d1c', '#131735', '#1a2044'],
+      glow: 'rgba(245,197,24,0.22)',
+      ridgeFar: 'rgba(245,197,24,0.045)', ridgeNear: 'rgba(245,197,24,0.08)',
+      ground: ['#11142a', '#080a16'], horizon: 'rgba(245,197,24,0.55)', tick: 'rgba(245,197,24,0.2)',
+      particle: 'stars', particleColor: '237,234,224',
+    },
+    {
+      id: 'desert', name: 'Wüste', icon: '🏜️',
+      sky: ['#2b0f08', '#5c2413', '#8a3a12'],
+      glow: 'rgba(255,153,51,0.30)',
+      ridgeFar: 'rgba(255,153,51,0.08)', ridgeNear: 'rgba(255,120,40,0.16)',
+      ground: ['#3a1d0d', '#1c0e06'], horizon: 'rgba(255,153,51,0.6)', tick: 'rgba(255,153,51,0.25)',
+      particle: 'stars', particleColor: '255,220,180',
+    },
+    {
+      id: 'forest', name: 'Nachtwald', icon: '🌲',
+      sky: ['#050e0a', '#0b1f14', '#123322'],
+      glow: 'rgba(120,255,170,0.15)',
+      ridgeFar: 'rgba(80,220,140,0.06)', ridgeNear: 'rgba(80,220,140,0.12)',
+      ground: ['#0c1f14', '#060f0a'], horizon: 'rgba(120,255,170,0.5)', tick: 'rgba(120,255,170,0.2)',
+      particle: 'fireflies', particleColor: '190,255,140',
+    },
+    {
+      id: 'snow', name: 'Alpen', icon: '🏔️',
+      sky: ['#0c1626', '#1b2c46', '#2c4568'],
+      glow: 'rgba(200,230,255,0.25)',
+      ridgeFar: 'rgba(220,235,255,0.10)', ridgeNear: 'rgba(220,235,255,0.18)',
+      ground: ['#1a2740', '#0c1626'], horizon: 'rgba(200,230,255,0.6)', tick: 'rgba(200,230,255,0.25)',
+      particle: 'snow', particleColor: '255,255,255',
+    },
+    {
+      id: 'neon', name: 'Neon City', icon: '🌃',
+      sky: ['#0a0518', '#1c0a3a', '#2e0f52'],
+      glow: 'rgba(255,60,200,0.25)',
+      ridgeFar: 'rgba(120,60,255,0.10)', ridgeNear: 'rgba(255,60,200,0.16)',
+      ground: ['#160a2e', '#0a0518'], horizon: 'rgba(0,240,255,0.65)', tick: 'rgba(0,240,255,0.25)',
+      particle: 'stars', particleColor: '150,220,255',
+    },
+  ];
+
+  let currentLevelIndex = parseInt(localStorage.getItem(LEVEL_KEY) || '0', 10);
+  if (!(currentLevelIndex >= 0 && currentLevelIndex < LEVELS.length)) currentLevelIndex = 0;
+
+  function updateLevelBadge() {
+    const lvl = LEVELS[currentLevelIndex];
+    levelBadge.textContent = `${lvl.icon} ${lvl.name}`;
+  }
+
+  function renderLevelGrid() {
+    levelGrid.innerHTML = LEVELS.map((lvl, i) => `
+      <div class="level-card" data-idx="${i}">
+        <span class="level-icon">${lvl.icon}</span>
+        <span class="level-name">${lvl.name}</span>
+        <span class="level-swatch" style="background:linear-gradient(90deg, ${lvl.sky[0]}, ${lvl.sky[2]})"></span>
+      </div>
+    `).join('');
+    levelGrid.querySelectorAll('.level-card').forEach(card => {
+      card.addEventListener('click', () => {
+        currentLevelIndex = parseInt(card.dataset.idx, 10);
+        localStorage.setItem(LEVEL_KEY, String(currentLevelIndex));
+        updateLevelBadge();
+        startGame();
+      });
+    });
+  }
+  renderLevelGrid();
+  updateLevelBadge();
+
+  changeLevelBtn.addEventListener('click', () => {
+    state = 'ready';
+    overOverlay.classList.add('hidden');
+    startOverlay.classList.remove('hidden');
+  });
 
   function reset() {
     drone = { y: BASE_H / 2, vy: 0, rot: 0 };
@@ -422,29 +552,50 @@
     ctx.fill();
   }
 
+  function drawAmbientParticles(level) {
+    if (level.particle === 'snow') {
+      ctx.fillStyle = `rgba(${level.particleColor},0.8)`;
+      for (const s of SNOW) {
+        const y = (s.y + animT * s.fall) % (BASE_H + 10);
+        const x = s.x + Math.sin(animT * 0.02 + s.seed) * 10;
+        ctx.beginPath();
+        ctx.arc(x, y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
+    for (const s of STARS) {
+      const tw = 0.5 + 0.5 * Math.sin(animT * 0.03 + s.seed);
+      let x = s.x, y = s.y;
+      if (level.particle === 'fireflies') {
+        x += Math.sin(animT * 0.015 + s.seed) * 8;
+        y += Math.cos(animT * 0.012 + s.seed * 1.3) * 6;
+      }
+      ctx.fillStyle = `rgba(${level.particleColor},${(0.12 + 0.45 * tw).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(x, y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function drawBackground() {
+    const level = LEVELS[currentLevelIndex];
+
     const sky = ctx.createLinearGradient(0, 0, 0, BASE_H);
-    sky.addColorStop(0, '#0a0d1c');
-    sky.addColorStop(0.55, '#131735');
-    sky.addColorStop(1, '#1a2044');
+    sky.addColorStop(0, level.sky[0]);
+    sky.addColorStop(0.55, level.sky[1]);
+    sky.addColorStop(1, level.sky[2]);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    // sanftes Sonnen-/Mond-Glühen
+    // sanftes Glühen (Sonne/Mond/Neon je nach Level)
     const glow = ctx.createRadialGradient(BASE_W * 0.76, BASE_H * 0.16, 0, BASE_W * 0.76, BASE_H * 0.16, 140);
-    glow.addColorStop(0, 'rgba(245,197,24,0.22)');
-    glow.addColorStop(1, 'rgba(245,197,24,0)');
+    glow.addColorStop(0, level.glow);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, BASE_W, BASE_H * 0.55);
 
-    // funkelnde Sterne
-    for (const s of STARS) {
-      const tw = 0.5 + 0.5 * Math.sin(animT * 0.03 + s.seed);
-      ctx.fillStyle = `rgba(237,234,224,${(0.12 + 0.45 * tw).toFixed(2)})`;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    drawAmbientParticles(level);
 
     // treibende Wolken
     ctx.fillStyle = 'rgba(237,234,224,0.05)';
@@ -458,26 +609,26 @@
     }
 
     // Bergketten, zwei Parallax-Ebenen
-    drawRidge(0.20, 40, animT * 0.15, 22, 2, 3, 'rgba(245,197,24,0.045)');
-    drawRidge(0.30, 60, animT * 0.35, 30, 3, 5, 'rgba(245,197,24,0.08)');
+    drawRidge(0.20, 40, animT * 0.15, 22, 2, 3, level.ridgeFar);
+    drawRidge(0.30, 60, animT * 0.35, 30, 3, 5, level.ridgeNear);
 
     // Boden
     const groundTop = BASE_H - 34;
     const groundGrad = ctx.createLinearGradient(0, groundTop, 0, BASE_H);
-    groundGrad.addColorStop(0, '#11142a');
-    groundGrad.addColorStop(1, '#080a16');
+    groundGrad.addColorStop(0, level.ground[0]);
+    groundGrad.addColorStop(1, level.ground[1]);
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, groundTop, BASE_W, BASE_H - groundTop);
 
     // leuchtende Horizontlinie
-    ctx.fillStyle = 'rgba(245,197,24,0.55)';
-    ctx.shadowColor = 'rgba(245,197,24,0.6)';
+    ctx.fillStyle = level.horizon;
+    ctx.shadowColor = level.horizon;
     ctx.shadowBlur = 8;
     ctx.fillRect(0, groundTop, BASE_W, 2);
     ctx.shadowBlur = 0;
 
     // scrollende Distanz-Markierungen
-    ctx.strokeStyle = 'rgba(245,197,24,0.2)';
+    ctx.strokeStyle = level.tick;
     ctx.lineWidth = 2;
     const tickSpacing = 40;
     let tx = -(groundOffset % tickSpacing);
@@ -667,7 +818,6 @@
     if (document.activeElement === topNameInput) return;
     if (e.code === 'Space') { e.preventDefault(); flap(); }
   });
-  startBtn.addEventListener('click', startGame);
   retryBtn.addEventListener('click', startGame);
 
   resize();
