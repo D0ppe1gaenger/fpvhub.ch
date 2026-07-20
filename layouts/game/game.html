@@ -94,6 +94,9 @@
   .name-input:focus { border-color: var(--bdrh); }
   .name-input::placeholder { color: var(--fd); }
 
+  .name-capture { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+  .name-capture.hidden { display: none; }
+
   .submit-status { font-size: 0.8rem; color: var(--g); min-height: 1.2em; font-weight: 600; }
 
   .leaderboard-wrap { max-width: 420px; margin: 0 auto 4rem; padding: 0 1rem; }
@@ -129,18 +132,21 @@
     <div class="game-overlay" id="startOverlay">
       <h2>Gate <span>Rush</span></h2>
       <p>Tippen, klicken oder Leertaste drücken um zu starten. Halte deine Drohne zwischen den Gates.</p>
-      <input type="text" id="nameInput" class="name-input" placeholder="Dein Name für die Bestenliste" maxlength="20">
       <button class="btn-primary" id="startBtn">Starten →</button>
     </div>
     <div class="game-overlay hidden" id="overOverlay">
       <h2>Crash! 💥</h2>
       <p class="score-line">Score: <b id="finalScore">0</b> &nbsp;·&nbsp; Best: <b id="finalBest">0</b></p>
       <p class="submit-status" id="submitStatus"></p>
+      <div class="name-capture hidden" id="nameCapture">
+        <input type="text" id="topNameInput" class="name-input" placeholder="Dein Name für die Bestenliste" maxlength="20">
+        <button class="btn-primary" id="saveNameBtn">Speichern →</button>
+      </div>
       <button class="btn-primary" id="retryBtn">Nochmal →</button>
     </div>
   </div>
 </div>
-<p class="game-hint">Dein Highscore wird lokal in diesem Browser gespeichert. Schaffst du es unter die Top 10, landet dein Score auf der <b>#Gate Rush</b> Bestenliste in unserem Discord.</p>
+<p class="game-hint">Schaffst du es unter die Top 10, fragen wir dich einmalig nach deinem Namen — danach merkt sich dein Gerät ihn. Dein Score landet dann auf der <b>#Gate Rush</b> Bestenliste in unserem Discord.</p>
 
 <div class="leaderboard-wrap">
   <h3 class="leaderboard-title">🏆 Top 10</h3>
@@ -164,22 +170,30 @@
   const overOverlay = document.getElementById('overOverlay');
   const startBtn = document.getElementById('startBtn');
   const retryBtn = document.getElementById('retryBtn');
-  const nameInput = document.getElementById('nameInput');
   const submitStatus = document.getElementById('submitStatus');
   const leaderboardList = document.getElementById('leaderboardList');
+  const nameCapture = document.getElementById('nameCapture');
+  const topNameInput = document.getElementById('topNameInput');
+  const saveNameBtn = document.getElementById('saveNameBtn');
 
   const BOT_API = 'https://fpvhub-bot-production.up.railway.app';
   const NAME_KEY = 'fpvhub_gate_rush_name';
-  nameInput.value = localStorage.getItem(NAME_KEY) || '';
-  nameInput.addEventListener('change', () => localStorage.setItem(NAME_KEY, nameInput.value.trim().slice(0, 20)));
+  let cachedTop10 = [];
+  let pendingScore = null;
+
+  function qualifiesForTop10(s) {
+    if (cachedTop10.length < 10) return true;
+    return s > cachedTop10[cachedTop10.length - 1].score;
+  }
 
   function renderLeaderboard(top10) {
-    if (!top10 || !top10.length) {
+    cachedTop10 = top10 || [];
+    if (!cachedTop10.length) {
       leaderboardList.innerHTML = '<li class="leaderboard-empty">Noch keine Einträge – sei die/der Erste!</li>';
       return;
     }
     const medals = ['🥇', '🥈', '🥉'];
-    leaderboardList.innerHTML = top10.map((r, i) => `
+    leaderboardList.innerHTML = cachedTop10.map((r, i) => `
       <li>
         <span class="rank">${medals[i] || (i + 1)}</span>
         <span class="lb-name">${escapeHtml(r.name)}</span>
@@ -202,8 +216,33 @@
   }
   loadLeaderboard();
 
-  function submitScore(finalScoreValue) {
-    const name = (nameInput.value.trim() || 'Anonym').slice(0, 20);
+  // Nach Game Over: prüft lokal, ob der Score für die Top 10 reicht.
+  // Reicht er UND ist noch kein Name gespeichert -> einmalig nachfragen.
+  // Reicht er UND ein Name ist bereits gespeichert -> automatisch einreichen, ohne erneut zu fragen.
+  // Reicht er nicht -> still im Hintergrund mit gespeichertem Namen (oder "Anonym") einreichen.
+  function handleScoreSubmission(s) {
+    const savedName = (localStorage.getItem(NAME_KEY) || '').trim();
+    if (qualifiesForTop10(s) && !savedName) {
+      pendingScore = s;
+      submitStatus.textContent = '🏆 Das reicht für die Top 10! Trag deinen Namen ein:';
+      nameCapture.classList.remove('hidden');
+      topNameInput.focus();
+      return;
+    }
+    submitScore(s, savedName || 'Anonym');
+  }
+
+  saveNameBtn.addEventListener('click', () => {
+    const name = (topNameInput.value.trim() || 'Anonym').slice(0, 20);
+    localStorage.setItem(NAME_KEY, name);
+    nameCapture.classList.add('hidden');
+    if (pendingScore !== null) { submitScore(pendingScore, name); pendingScore = null; }
+  });
+  topNameInput.addEventListener('keydown', (e) => {
+    if (e.code === 'Enter') { e.preventDefault(); saveNameBtn.click(); }
+  });
+
+  function submitScore(finalScoreValue, name) {
     submitStatus.textContent = 'Score wird gespeichert …';
     fetch(BOT_API + '/api/game/score', {
       method: 'POST',
@@ -214,7 +253,7 @@
       .then(data => {
         if (!data.success) { submitStatus.textContent = ''; return; }
         submitStatus.textContent = data.madeTop10
-          ? `🏆 Neuer Top-10-Platz (#${data.rank})!`
+          ? `🏆 Neuer Top-10-Platz (#${data.rank}) als ${name}!`
           : 'Score gespeichert.';
         if (data.top10) renderLeaderboard(data.top10);
       })
@@ -310,7 +349,8 @@
     startOverlay.classList.add('hidden');
     overOverlay.classList.add('hidden');
     submitStatus.textContent = '';
-    nameInput.blur();
+    nameCapture.classList.add('hidden');
+    pendingScore = null;
     spawnGate();
   }
 
@@ -321,7 +361,7 @@
     finalBest.textContent = best;
     bestLabel.textContent = best;
     overOverlay.classList.remove('hidden');
-    submitScore(score);
+    handleScoreSubmission(score);
   }
 
   function update() {
@@ -624,7 +664,7 @@
   canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); flap(); });
   stage.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
   window.addEventListener('keydown', (e) => {
-    if (document.activeElement === nameInput) return;
+    if (document.activeElement === topNameInput) return;
     if (e.code === 'Space') { e.preventDefault(); flap(); }
   });
   startBtn.addEventListener('click', startGame);
