@@ -155,6 +155,31 @@
   .submit-status { font-size: 0.8rem; color: var(--g); min-height: 1.2em; font-weight: 600; }
 
   .leaderboard-wrap { max-width: 420px; margin: 0 auto 4rem; padding: 0 1rem; }
+  .discord-link-row { text-align: center; margin-top: 1rem; font-size: 0.78rem; }
+  .discord-link-row a { color: var(--g); font-weight: 600; text-decoration: none; }
+  .discord-link-row a:hover { text-decoration: underline; }
+  .discord-link-row .discord-link-hint { display: block; color: var(--fd); margin-top: 0.2rem; font-size: 0.7rem; }
+  .discord-link-row.linked a { color: var(--fm); cursor: default; pointer-events: none; }
+
+  .my-rank-row { text-align: center; margin-top: 0.6rem; font-size: 0.8rem; color: var(--g); font-weight: 600; }
+  .my-rank-row.hidden { display: none; }
+
+  .stats-panel { margin-top: 2rem; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+  @media (min-width: 480px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .stat-item {
+    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    background: var(--n1); border: 1px solid var(--bdr); border-radius: 0.6rem;
+    padding: 0.8rem 0.5rem;
+  }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--g); }
+  .stat-label { font-size: 0.68rem; color: var(--fd); text-align: center; }
   .leaderboard-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; text-align: center; }
   .leaderboard-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
   .leaderboard-list li {
@@ -200,7 +225,7 @@
         <button class="btn-primary" id="saveNameBtn">Speichern →</button>
       </div>
       <div class="champion-claim hidden" id="championClaim">
-        <p>🏆 Du bist die/der Neue #1! Verknüpfe deinen Discord-Account, um die Champion-Rolle im Server zu bekommen.</p>
+        <p id="championClaimText">🏆 Top 10! Verknüpfe deinen Discord-Account, damit dein echter Name in der Bestenliste steht.</p>
         <a class="btn-primary" id="championClaimBtn" href="#">Mit Discord verknüpfen →</a>
       </div>
       <button class="btn-primary" id="retryBtn">Nochmal →</button>
@@ -215,6 +240,18 @@
   <ol class="leaderboard-list" id="leaderboardList">
     <li class="leaderboard-empty">Lade Bestenliste...</li>
   </ol>
+  <p class="discord-link-row" id="discordLinkRow">
+    <a href="#" id="discordLinkBtn">🔗 Discord-Account verknüpfen</a>
+    <span class="discord-link-hint">Dann steht dein echter Discord-Name in der Bestenliste.</span>
+  </p>
+  <p class="my-rank-row hidden" id="myRankRow"></p>
+
+  <div class="stats-panel">
+    <h3 class="leaderboard-title">📊 Statistiken</h3>
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-item"><span class="stat-value">-</span><span class="stat-label">Lade...</span></div>
+    </div>
+  </div>
 </div>
 {{ end }}
 
@@ -241,12 +278,18 @@
   const saveNameBtn = document.getElementById('saveNameBtn');
   const championClaim = document.getElementById('championClaim');
   const championClaimBtn = document.getElementById('championClaimBtn');
+  const discordLinkRow = document.getElementById('discordLinkRow');
+  const discordLinkBtn = document.getElementById('discordLinkBtn');
+  const myRankRow = document.getElementById('myRankRow');
+  const statsGrid = document.getElementById('statsGrid');
   const effectsHud = document.getElementById('effectsHud');
 
   const BOT_API = 'https://fpvhub-bot-production.up.railway.app';
   const NAME_KEY = 'fpvhub_gate_rush_name';
   const LEVEL_KEY = 'fpvhub_gate_rush_level';
   const PENDING_CHAMPION_KEY = 'fpvhub_gate_rush_pending_champion_score_id';
+  const DISCORD_TOKEN_KEY = 'fpvhub_gate_rush_discord_token';
+  const DISCORD_NAME_KEY = 'fpvhub_gate_rush_discord_name';
   let cachedTop10 = [];
   let pendingScore = null;
 
@@ -285,12 +328,75 @@
   }
   loadLeaderboard();
 
-  // Nach Game Over: prüft lokal, ob der Score für die Top 10 reicht.
-  // Reicht er UND ist noch kein Name gespeichert -> einmalig nachfragen.
-  // Reicht er UND ein Name ist bereits gespeichert -> automatisch einreichen, ohne erneut zu fragen.
-  // Reicht er nicht -> still im Hintergrund mit gespeichertem Namen (oder "Anonym") einreichen.
+  // Alle abfragbaren Statistiken - öffentlich sichtbar, unabhängig vom Login
+  function loadStats() {
+    fetch(BOT_API + '/api/game/stats')
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        const items = [
+          { value: data.totalPlays, label: 'Runden gespielt' },
+          { value: data.plays24h, label: 'Letzte 24h' },
+          { value: data.distinctPlayers, label: 'Verschiedene Spieler' },
+          { value: data.avgScore, label: 'Durchschnittsscore' },
+          { value: data.topScore, label: 'Höchster Score' },
+          { value: data.champion ? `${escapeHtml(data.champion.name)} (${data.champion.score})` : '-', label: 'Aktueller Spitzenreiter' },
+        ];
+        statsGrid.innerHTML = items.map(it => `
+          <div class="stat-item"><span class="stat-value">${it.value}</span><span class="stat-label">${it.label}</span></div>
+        `).join('');
+      })
+      .catch(() => {
+        statsGrid.innerHTML = '<div class="stat-item"><span class="stat-value">-</span><span class="stat-label">Nicht erreichbar</span></div>';
+      });
+  }
+  loadStats();
+
+  // Eigener Rang unter allen Spielern (nicht nur Top 10) - nur mit verknüpftem Discord
+  function loadMyRank() {
+    const token = localStorage.getItem(DISCORD_TOKEN_KEY);
+    if (!token) { myRankRow.classList.add('hidden'); return; }
+
+    fetch(BOT_API + '/api/game/my-rank', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.linked) { myRankRow.classList.add('hidden'); return; }
+        myRankRow.classList.remove('hidden');
+        myRankRow.textContent = data.hasScore
+          ? `Dein Platz: #${data.rank} (Score: ${data.score})`
+          : 'Du hast noch keine Runde gespielt.';
+      })
+      .catch(() => { myRankRow.classList.add('hidden'); });
+  }
+  loadMyRank();
+
+  // --- Discord-Verknüpfung: dauerhaft möglich, nicht nur bei Top 10 ---
+  function isDiscordLinked() {
+    return !!localStorage.getItem(DISCORD_TOKEN_KEY);
+  }
+
+  function renderDiscordLinkRow() {
+    if (isDiscordLinked()) {
+      const linkedName = localStorage.getItem(DISCORD_NAME_KEY) || 'Discord';
+      discordLinkRow.classList.add('linked');
+      discordLinkBtn.textContent = `✅ Verknüpft als ${linkedName}`;
+      discordLinkBtn.removeAttribute('href');
+    } else {
+      discordLinkRow.classList.remove('linked');
+      discordLinkBtn.textContent = '🔗 Discord-Account verknüpfen';
+      discordLinkBtn.href = BOT_API + '/auth/discord?state=game';
+    }
+    loadMyRank();
+  }
+  renderDiscordLinkRow();
+
+  // Nach Game Over: ist Discord bereits verknüpft, läuft alles automatisch
+  // über den Discord-Namen, es wird nie wieder nach einem Namen gefragt.
+  // Sonst: reicht der Score für die Top 10 und ist noch kein Name gespeichert,
+  // einmalig nachfragen (mit Option, stattdessen Discord zu verknüpfen).
   let pendingFrames = 0;
   function handleScoreSubmission(s, frames) {
+    if (isDiscordLinked()) { submitScore(s, null, frames); return; }
     const savedName = (localStorage.getItem(NAME_KEY) || '').trim();
     if (qualifiesForTop10(s) && !savedName) {
       pendingScore = s;
@@ -315,19 +421,28 @@
 
   function submitScore(finalScoreValue, name, frames) {
     submitStatus.textContent = 'Score wird gespeichert...';
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem(DISCORD_TOKEN_KEY);
+    if (token) headers.Authorization = 'Bearer ' + token;
+
     fetch(BOT_API + '/api/game/score', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ name, score: finalScoreValue, frames }),
     })
       .then(r => r.json())
       .then(data => {
         if (!data.success) { submitStatus.textContent = ''; return; }
+        const shownName = data.name || name;
         submitStatus.textContent = data.madeTop10
-          ? `🏆 Neuer Top-10-Platz (#${data.rank}) als ${name}!`
+          ? `🏆 Neuer Top-10-Platz (#${data.rank}) als ${shownName}!`
           : 'Score gespeichert.';
         if (data.top10) renderLeaderboard(data.top10);
-        if (data.isChampion && data.scoreId) {
+        loadStats();
+        loadMyRank();
+
+        // Ab Top 10 (nicht nur Platz 1) nach Verknüpfung fragen, falls noch nicht verknüpft
+        if (data.madeTop10 && !data.linked && data.scoreId) {
           localStorage.setItem(PENDING_CHAMPION_KEY, String(data.scoreId));
           championClaimBtn.href = BOT_API + '/auth/discord?state=game';
           championClaim.classList.remove('hidden');
@@ -336,35 +451,53 @@
       .catch(() => { submitStatus.textContent = ''; });
   }
 
-  // Nach Rückkehr vom Discord-Login (state=game): Token aus der URL lesen und
-  // den zwischengespeicherten #1-Score mit dem Account verknüpfen.
-  (function handleChampionOAuthReturn() {
+  // Nach Rückkehr vom Discord-Login (state=game): Token aus der URL lesen,
+  // Konto-Infos holen und lokal merken. Gibt es einen zwischengespeicherten
+  // Top-10-Score, wird der nachträglich verknüpft (Name + Rolle aktualisiert).
+  (function handleDiscordOAuthReturn() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const authError = params.get('auth');
     if (!token && !authError) return;
-
-    const scoreId = localStorage.getItem(PENDING_CHAMPION_KEY);
-    if (token && scoreId) {
-      fetch(BOT_API + '/api/game/score/claim-champion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ scoreId: Number(scoreId) }),
-      })
-        .then(r => r.json())
-        .then((data) => {
-          if (data.success) {
-            localStorage.removeItem(PENDING_CHAMPION_KEY);
-            submitStatus.textContent = '🏆 Discord verknüpft! Die Champion-Rolle wird vergeben.';
-            overOverlay.classList.remove('hidden');
-            startOverlay.classList.add('hidden');
-          }
-        })
-        .catch(() => {});
-    }
-    // URL wieder sauber machen, ohne Reload
     window.history.replaceState({}, '', window.location.pathname);
+    if (!token) return;
+
+    fetch(BOT_API + '/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json())
+      .then((me) => {
+        if (!me.loggedIn) return;
+        localStorage.setItem(DISCORD_TOKEN_KEY, token);
+        localStorage.setItem(DISCORD_NAME_KEY, me.user.display_name);
+        renderDiscordLinkRow();
+
+        const scoreId = localStorage.getItem(PENDING_CHAMPION_KEY);
+        if (scoreId) {
+          fetch(BOT_API + '/api/game/score/link-discord', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ scoreId: Number(scoreId) }),
+          })
+            .then(r => r.json())
+            .then((data) => {
+              localStorage.removeItem(PENDING_CHAMPION_KEY);
+              if (data.success) {
+                submitStatus.textContent = `🔗 Discord verknüpft als ${data.name}!`;
+                championClaim.classList.add('hidden');
+                overOverlay.classList.remove('hidden');
+                startOverlay.classList.add('hidden');
+                loadLeaderboard();
+                loadStats();
+              }
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
   })();
+
+  discordLinkBtn.addEventListener('click', (e) => {
+    if (isDiscordLinked()) e.preventDefault();
+  });
 
   const BASE_W = 400, BASE_H = 600;
   let scale = 1;
@@ -520,12 +653,44 @@
   }
   reset();
 
+  const CHOICE_GATE_SCORE = 3; // ab diesem Score können Wahl-Gates auftauchen
+
   function spawnGate() {
     // Gap-Grösse hängt kontinuierlich von der Spielzeit ab (nicht vom Score),
     // dadurch ist jedes neue Gate nur minimal enger als das vorherige statt
     // dass sich alle sichtbaren Gates schlagartig gleichzeitig verändern.
     const gapH = Math.max(118, 168 - frame * 0.035);
-    const gapY = GATE_MARGIN + Math.random() * (BASE_H - GATE_MARGIN * 2 - gapH);
+    const availableSpan = BASE_H - GATE_MARGIN * 2;
+
+    // Wahl-Gate: zwei Lücken gleichzeitig - eine breite (leicht, kein Bonus)
+    // und eine schmale (schwer, garantiertes Power-up). Nur wenn genug
+    // vertikaler Platz für beide + Trennsteg vorhanden ist.
+    const narrowH = 74;
+    const dividerH = 16;
+    const choiceNeeded = gapH + narrowH + dividerH;
+    const canChoice = score >= CHOICE_GATE_SCORE && choiceNeeded <= availableSpan;
+    if (canChoice && Math.random() < 0.18) {
+      const wideOnTop = Math.random() < 0.5;
+      const startY = GATE_MARGIN + Math.random() * (availableSpan - choiceNeeded);
+      const wideY = wideOnTop ? startY : startY + narrowH + dividerH;
+      const narrowY = wideOnTop ? startY + gapH + dividerH : startY;
+
+      gates.push({
+        x: BASE_W + 20,
+        choice: true,
+        gapY: wideY, gapH,
+        gapY2: narrowY, gapH2: narrowH,
+        passed: false,
+        moving: false,
+        blinking: false,
+        blinkOffset: 0,
+        powerup: POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)],
+        powerupCollected: false,
+      });
+      return;
+    }
+
+    const gapY = GATE_MARGIN + Math.random() * (availableSpan - gapH);
 
     const moving = score >= MOVING_GATE_SCORE && Math.random() < 0.5;
     const blinking = score >= NIGHT_MODE_SCORE && Math.random() < 0.3;
@@ -538,6 +703,7 @@
 
     gates.push({
       x: BASE_W + 20,
+      choice: false,
       baseGapY: gapY,
       gapY,
       gapH,
@@ -652,7 +818,8 @@
       }
 
       if (g.powerup && !g.powerupCollected) {
-        const px = g.x + GATE_W / 2, py = g.gapY + g.gapH / 2;
+        const px = g.x + GATE_W / 2;
+        const py = g.choice ? (g.gapY2 + g.gapH2 / 2) : (g.gapY + g.gapH / 2);
         const dx = DRONE_X - px, dy = drone.y - py;
         const collectR = rNow + 16;
         if (dx * dx + dy * dy < collectR * collectR) {
@@ -663,7 +830,15 @@
 
       const withinX = DRONE_X + rNow > g.x && DRONE_X - rNow < g.x + GATE_W;
       if (withinX) {
-        if (drone.y - rNow < g.gapY || drone.y + rNow > g.gapY + g.gapH) {
+        let hit;
+        if (g.choice) {
+          const inGap1 = drone.y - rNow >= g.gapY && drone.y + rNow <= g.gapY + g.gapH;
+          const inGap2 = drone.y - rNow >= g.gapY2 && drone.y + rNow <= g.gapY2 + g.gapH2;
+          hit = !(inGap1 || inGap2);
+        } else {
+          hit = drone.y - rNow < g.gapY || drone.y + rNow > g.gapY + g.gapH;
+        }
+        if (hit) {
           if (handleCollision()) return;
         }
       }
@@ -839,13 +1014,41 @@
   }
 
   function drawGate(g) {
+    const alpha = gateBlinkAlpha(g);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (g.choice) {
+      const gapA = { y: g.gapY, h: g.gapH };
+      const gapB = { y: g.gapY2, h: g.gapH2 };
+      const [upper, lower] = gapA.y < gapB.y ? [gapA, gapB] : [gapB, gapA];
+      const topH = upper.y;
+      const dividerY = upper.y + upper.h;
+      const dividerH = lower.y - dividerY;
+      const botY = lower.y + lower.h;
+      const botH = BASE_H - botY;
+
+      drawGatePanel(g.x, 0, GATE_W, topH);
+      drawGatePanel(g.x, dividerY, GATE_W, dividerH);
+      drawGatePanel(g.x, botY, GATE_W, botH);
+
+      const pulse = 0.55 + 0.45 * Math.sin(animT * 0.15);
+      ctx.fillStyle = `rgba(245,197,24,${(0.55 + 0.35 * pulse).toFixed(2)})`;
+      ctx.shadowColor = 'rgba(245,197,24,0.9)';
+      ctx.shadowBlur = 14;
+      ctx.fillRect(g.x - 3, upper.y - 4, GATE_W + 6, 5);
+      ctx.fillRect(g.x - 3, upper.y + upper.h - 1, GATE_W + 6, 5);
+      ctx.fillRect(g.x - 3, lower.y - 4, GATE_W + 6, 5);
+      ctx.fillRect(g.x - 3, lower.y + lower.h - 1, GATE_W + 6, 5);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      return;
+    }
+
     const topH = g.gapY;
     const botY = g.gapY + g.gapH;
     const botH = BASE_H - botY;
-    const alpha = gateBlinkAlpha(g);
 
-    ctx.save();
-    ctx.globalAlpha = alpha;
     drawGatePanel(g.x, 0, GATE_W, topH);
     drawGatePanel(g.x, botY, GATE_W, botH);
 
@@ -986,7 +1189,7 @@
   function drawPowerupBadge(g) {
     if (!g.powerup || g.powerupCollected) return;
     const px = g.x + GATE_W / 2;
-    const py = g.gapY + g.gapH / 2;
+    const py = g.choice ? (g.gapY2 + g.gapH2 / 2) : (g.gapY + g.gapH / 2);
     const pulse = 0.6 + 0.4 * Math.sin(animT * 0.2);
     const scalePulse = 1 + 0.12 * Math.sin(animT * 0.2);
     ctx.save();
