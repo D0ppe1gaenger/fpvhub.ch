@@ -95,6 +95,9 @@
   .name-input::placeholder { color: var(--fd); }
 
   .name-capture { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+  .champion-claim { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; max-width: 26ch; text-align: center; }
+  .champion-claim.hidden { display: none; }
+  .champion-claim p { font-size: 0.8rem; color: var(--fm); line-height: 1.5; }
   .name-capture.hidden { display: none; }
 
   .level-badge {
@@ -196,6 +199,10 @@
         <input type="text" id="topNameInput" class="name-input" placeholder="Dein Name für die Bestenliste" maxlength="20">
         <button class="btn-primary" id="saveNameBtn">Speichern →</button>
       </div>
+      <div class="champion-claim hidden" id="championClaim">
+        <p>🏆 Du bist die/der Neue #1! Verknüpfe deinen Discord-Account, um die Champion-Rolle im Server zu bekommen.</p>
+        <a class="btn-primary" id="championClaimBtn" href="#">Mit Discord verknüpfen →</a>
+      </div>
       <button class="btn-primary" id="retryBtn">Nochmal →</button>
       <button class="btn-ghost" id="changeLevelBtn">Level wechseln</button>
     </div>
@@ -232,11 +239,14 @@
   const nameCapture = document.getElementById('nameCapture');
   const topNameInput = document.getElementById('topNameInput');
   const saveNameBtn = document.getElementById('saveNameBtn');
+  const championClaim = document.getElementById('championClaim');
+  const championClaimBtn = document.getElementById('championClaimBtn');
   const effectsHud = document.getElementById('effectsHud');
 
   const BOT_API = 'https://fpvhub-bot-production.up.railway.app';
   const NAME_KEY = 'fpvhub_gate_rush_name';
   const LEVEL_KEY = 'fpvhub_gate_rush_level';
+  const PENDING_CHAMPION_KEY = 'fpvhub_gate_rush_pending_champion_score_id';
   let cachedTop10 = [];
   let pendingScore = null;
 
@@ -279,34 +289,36 @@
   // Reicht er UND ist noch kein Name gespeichert -> einmalig nachfragen.
   // Reicht er UND ein Name ist bereits gespeichert -> automatisch einreichen, ohne erneut zu fragen.
   // Reicht er nicht -> still im Hintergrund mit gespeichertem Namen (oder "Anonym") einreichen.
-  function handleScoreSubmission(s) {
+  let pendingFrames = 0;
+  function handleScoreSubmission(s, frames) {
     const savedName = (localStorage.getItem(NAME_KEY) || '').trim();
     if (qualifiesForTop10(s) && !savedName) {
       pendingScore = s;
+      pendingFrames = frames;
       submitStatus.textContent = '🏆 Das reicht für die Top 10! Trag deinen Namen ein:';
       nameCapture.classList.remove('hidden');
       topNameInput.focus();
       return;
     }
-    submitScore(s, savedName || 'Anonym');
+    submitScore(s, savedName || 'Anonym', frames);
   }
 
   saveNameBtn.addEventListener('click', () => {
     const name = (topNameInput.value.trim() || 'Anonym').slice(0, 20);
     localStorage.setItem(NAME_KEY, name);
     nameCapture.classList.add('hidden');
-    if (pendingScore !== null) { submitScore(pendingScore, name); pendingScore = null; }
+    if (pendingScore !== null) { submitScore(pendingScore, name, pendingFrames); pendingScore = null; }
   });
   topNameInput.addEventListener('keydown', (e) => {
     if (e.code === 'Enter') { e.preventDefault(); saveNameBtn.click(); }
   });
 
-  function submitScore(finalScoreValue, name) {
+  function submitScore(finalScoreValue, name, frames) {
     submitStatus.textContent = 'Score wird gespeichert...';
     fetch(BOT_API + '/api/game/score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, score: finalScoreValue }),
+      body: JSON.stringify({ name, score: finalScoreValue, frames }),
     })
       .then(r => r.json())
       .then(data => {
@@ -315,9 +327,44 @@
           ? `🏆 Neuer Top-10-Platz (#${data.rank}) als ${name}!`
           : 'Score gespeichert.';
         if (data.top10) renderLeaderboard(data.top10);
+        if (data.isChampion && data.scoreId) {
+          localStorage.setItem(PENDING_CHAMPION_KEY, String(data.scoreId));
+          championClaimBtn.href = BOT_API + '/auth/discord?state=game';
+          championClaim.classList.remove('hidden');
+        }
       })
       .catch(() => { submitStatus.textContent = ''; });
   }
+
+  // Nach Rückkehr vom Discord-Login (state=game): Token aus der URL lesen und
+  // den zwischengespeicherten #1-Score mit dem Account verknüpfen.
+  (function handleChampionOAuthReturn() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const authError = params.get('auth');
+    if (!token && !authError) return;
+
+    const scoreId = localStorage.getItem(PENDING_CHAMPION_KEY);
+    if (token && scoreId) {
+      fetch(BOT_API + '/api/game/score/claim-champion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ scoreId: Number(scoreId) }),
+      })
+        .then(r => r.json())
+        .then((data) => {
+          if (data.success) {
+            localStorage.removeItem(PENDING_CHAMPION_KEY);
+            submitStatus.textContent = '🏆 Discord verknüpft! Die Champion-Rolle wird vergeben.';
+            overOverlay.classList.remove('hidden');
+            startOverlay.classList.add('hidden');
+          }
+        })
+        .catch(() => {});
+    }
+    // URL wieder sauber machen, ohne Reload
+    window.history.replaceState({}, '', window.location.pathname);
+  })();
 
   const BASE_W = 400, BASE_H = 600;
   let scale = 1;
@@ -552,6 +599,7 @@
     overOverlay.classList.add('hidden');
     submitStatus.textContent = '';
     nameCapture.classList.add('hidden');
+    championClaim.classList.add('hidden');
     pendingScore = null;
     spawnGate();
   }
@@ -563,7 +611,7 @@
     finalBest.textContent = best;
     bestLabel.textContent = best;
     overOverlay.classList.remove('hidden');
-    handleScoreSubmission(score);
+    handleScoreSubmission(score, frame);
   }
 
   function update() {
