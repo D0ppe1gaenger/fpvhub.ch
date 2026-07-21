@@ -470,21 +470,39 @@
         localStorage.setItem(DISCORD_NAME_KEY, me.user.display_name);
         renderDiscordLinkRow();
 
+        // Immer versuchen, bisherige anonyme Scores unter dem lokal bekannten
+        // Namen rückwirkend zu verknüpfen - nicht nur wenn gerade ein
+        // Top-10-Score offen war, sondern auch beim freiwilligen Verknüpfen.
         const scoreId = localStorage.getItem(PENDING_CHAMPION_KEY);
-        if (scoreId) {
+        const anonymousName = (localStorage.getItem(NAME_KEY) || '').trim();
+        if (scoreId || anonymousName) {
           fetch(BOT_API + '/api/game/score/link-discord', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-            body: JSON.stringify({ scoreId: Number(scoreId) }),
+            body: JSON.stringify({
+              scoreId: scoreId ? Number(scoreId) : null,
+              anonymousName: anonymousName || null,
+            }),
           })
             .then(r => r.json())
             .then((data) => {
               localStorage.removeItem(PENDING_CHAMPION_KEY);
               if (data.success) {
-                submitStatus.textContent = `🔗 Discord verknüpft als ${data.name}!`;
+                const msg = data.updated > 0
+                  ? `🔗 Discord verknüpft als ${data.name}! ${data.updated} bisherige${data.updated === 1 ? 'r Score wurde' : ' Scores wurden'} umbenannt.`
+                  : `🔗 Discord verknüpft als ${data.name}!`;
                 championClaim.classList.add('hidden');
-                overOverlay.classList.remove('hidden');
-                startOverlay.classList.add('hidden');
+                if (scoreId) {
+                  submitStatus.textContent = msg;
+                  overOverlay.classList.remove('hidden');
+                  startOverlay.classList.add('hidden');
+                } else {
+                  // Freiwillige Verknüpfung ohne offenen Crash-Score: Bestätigung
+                  // kurz in der "Mein Platz"-Zeile zeigen, danach normaler Rang.
+                  myRankRow.classList.remove('hidden');
+                  myRankRow.textContent = msg;
+                  setTimeout(loadMyRank, 3500);
+                }
                 loadLeaderboard();
                 loadStats();
               }
