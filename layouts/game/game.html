@@ -355,6 +355,10 @@
           { value: data.topScore, label: 'Höchster Score' },
           { value: data.champion ? `${escapeHtml(data.champion.name)} (${data.champion.score})` : '-', label: 'Aktueller Spitzenreiter' },
         ];
+        if (data.nextAutoReset) {
+          const daysLeft = Math.max(0, Math.ceil((new Date(data.nextAutoReset) - new Date()) / (24 * 60 * 60 * 1000)));
+          items.push({ value: daysLeft <= 0 ? 'bald' : `${daysLeft} Tag${daysLeft === 1 ? '' : 'e'}`, label: 'Bis zum Reset' });
+        }
         statsGrid.innerHTML = items.map(it => `
           <div class="stat-item"><span class="stat-value">${it.value}</span><span class="stat-label">${it.label}</span></div>
         `).join('');
