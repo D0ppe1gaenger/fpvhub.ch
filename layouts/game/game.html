@@ -290,6 +290,19 @@
   const PENDING_CHAMPION_KEY = 'fpvhub_gate_rush_pending_champion_score_id';
   const DISCORD_TOKEN_KEY = 'fpvhub_gate_rush_discord_token';
   const DISCORD_NAME_KEY = 'fpvhub_gate_rush_discord_name';
+  const DEVICE_ID_KEY = 'fpvhub_gate_rush_device_id';
+
+  function getDeviceId() {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID()
+        : 'd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  }
+  const DEVICE_ID = getDeviceId();
   let cachedTop10 = [];
   let pendingScore = null;
 
@@ -428,7 +441,7 @@
     fetch(BOT_API + '/api/game/score', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ name, score: finalScoreValue, frames }),
+      body: JSON.stringify({ name, score: finalScoreValue, frames, deviceId: DEVICE_ID }),
     })
       .then(r => r.json())
       .then(data => {
@@ -482,6 +495,7 @@
             body: JSON.stringify({
               scoreId: scoreId ? Number(scoreId) : null,
               anonymousName: anonymousName || null,
+              deviceId: DEVICE_ID,
             }),
           })
             .then(r => r.json())
